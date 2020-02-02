@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sapnwrfc-exporter
+  labels:
+    app: sapnwrfc-exporter
+  namespace: sap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sapnwrfc-exporter
+  template:
+    metadata:
+      labels:
+        app: sapnwrfc-exporter
+    spec:
+      containers:
+      - name: sapnwrfc-exporter
+        image: sapnwrfc-exporter:0.1
+        ports:
+        - containerPort: 9663
+        volumeMounts:
+          - name: config-volume
+            mountPath: /app/sapnwrfc_exporter.toml
+            subPath: sapnwrfc_exporter.toml
+      volumes:
+          - name: config-volume
+            configMap:
+                name: sapnwrfc-config
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: sapnwrfc-exporter
+  namespace: sap
+spec:
+  ports:
+  - name: http
+    port: 9663
+    targetPort: 9663
+  selector:
+    app: sapnwrfc-exporter
+

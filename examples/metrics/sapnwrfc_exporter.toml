@@ -1,0 +1,58 @@
+
+[[Systems]]
+  Name = "t01"
+  Usage = "production"
+  Tags = ["erp"]
+  Lang = "en"
+  User = "user1"
+  Client = "100"
+  Server = "host1.example.com"
+  Sysnr = "01"
+
+[[TableMetrics]]
+  Name = "sap_users"
+  Help = "sm04 help"
+  MetricType = "gauge"
+  TagFilter = []
+  FuMo = "TH_USER_LIST"
+  AllServers = true
+  Table = "USRLIST"
+  [TableMetrics.Params]
+  [TableMetrics.RowCount]
+    type = [4]
+    guiversion = ["76", "75", "74"]
+    mandt = ["000", "090", "100", "400"]
+  [TableMetrics.RowFilter]
+
+[[TableMetrics]]
+  Name = "sap_lock_entries"
+  Help = "sm12 help"
+  MetricType = "gauge"
+  TagFilter = []
+  FuMo = "ENQUE_READ"
+  AllServers = false
+  Table = "ENQ"
+  [TableMetrics.Params]
+    GARG = ""
+    GCLIENT = ""
+    GNAME = ""
+    GUNAME = ""
+  [TableMetrics.RowCount]
+    gclient = ["total", "000", "090", "100", "400"]
+  [TableMetrics.RowFilter]
+
+[[TableMetrics]]
+  Name = "sap_processes"
+  Help = "sm50 help"
+  MetricType = "gauge"
+  TagFilter = []
+  FuMo = "TH_WPINFO"
+  AllServers = true
+  Table = "WPLIST"
+  [TableMetrics.Params]
+    SRVNAME = ""
+  [TableMetrics.RowCount]
+    WP_TYP = ["dia", "btc", "upd", "upd2"]
+    WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
+  [TableMetrics.RowFilter]
+    WP_STATUS = ["on hold", "running"]

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package internal;
+
+message Secret {
+  map<string,bytes> Name = 1;
+}
