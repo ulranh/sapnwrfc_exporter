@@ -160,4 +160,4 @@ The resulting information can be found in the Prometheus expression browser and 
 
 The image below for example shows the number of active dialog, batch and update processes at a given time:
 
- ![backups](/examples/images/processes.png)
+ ![processes](/examples/images/processes.png)
