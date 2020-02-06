@@ -37,5 +37,5 @@ COPY --from=builder /app/nwrfcsdk /app/nwrfcsdk
 COPY --from=builder /app/sapnwrfc_exporter /app/sapnwrfc_exporter
 # COPY --from=builder /app/sapnwrfc_exporter.toml /app/sapnwrfc_exporter.toml
 
-EXPOSE 3131
-ENTRYPOINT ["/app/sapnwrfc_exporter","web","--port","3131","--config","/app/sapnwrfc_exporter.toml"]
+EXPOSE 9663
+ENTRYPOINT ["/app/sapnwrfc_exporter","web","--port","9663","--config","/app/sapnwrfc_exporter.toml"]

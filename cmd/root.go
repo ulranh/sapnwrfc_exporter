@@ -87,7 +87,7 @@ var paramMap = map[string]*struct {
 		usage: "Name(s) of system(s) - lower case words separated by comma (required)\ne.g. -system P01,P02",
 	},
 	"port": {
-		value: "3131",
+		value: "9663",
 		usage: "Client port",
 	},
 	"config": {
