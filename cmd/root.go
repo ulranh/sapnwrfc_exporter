@@ -26,6 +26,7 @@ type systemInfo struct {
 	password string
 	servers  []serverInfo
 }
+type systemsInfo []*systemInfo
 
 type serverInfo struct {
 	name  string

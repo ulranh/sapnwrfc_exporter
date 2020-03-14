@@ -134,74 +134,73 @@ func (config *Config) appendMissingData() error {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	// start := time.Now()
-	// log.WithFields(log.Fields{
-	// 	"timestamp": start,
-	// }).Info("Start scraping")
+	metricsC := make(chan metricData, len(config.TableMetrics))
+	// go func(metrics []*metricInfo, systems []*systemInfo) {
+	var wg sync.WaitGroup
 
-	resC := make(chan metricData)
-	go func(metrics []*metricInfo, systems []*systemInfo) {
-		var wg sync.WaitGroup
+	for _, metric := range config.TableMetrics {
 
-		for _, metric := range metrics {
-
-			wg.Add(1)
-			go func(metric *metricInfo, systems []*systemInfo) {
-				defer wg.Done()
-				resC <- metricData{
-					name:       metric.Name,
-					help:       metric.Help,
-					metricType: metric.MetricType,
-					stats:      collectSystemsMetric(metric, systems),
-				}
-			}(metric, systems)
-		}
-		wg.Wait()
-		close(resC)
-	}(config.TableMetrics, config.Systems)
-
-	var metrics []metricData
-	for metric := range resC {
-		metrics = append(metrics, metric)
+		wg.Add(1)
+		go func(metric *metricInfo, systems systemsInfo) {
+			defer wg.Done()
+			metricsC <- metricData{
+				name:       metric.Name,
+				help:       metric.Help,
+				metricType: metric.MetricType,
+				stats:      systems.collectMetric(metric, config.timeout),
+			}
+		}(metric, config.Systems)
 	}
 
-	// log.WithFields(log.Fields{
-	// 	"timestamp": time.Since(start),
-	// }).Info("Finish scraping")
-	return metrics
+	go func() {
+		wg.Wait()
+		close(metricsC)
+	}()
+
+	var metricsData []metricData
+	for metric := range metricsC {
+		metricsData = append(metricsData, metric)
+	}
+
+	return metricsData
 }
 
 // start collecting metric information for all tenants
-func collectSystemsMetric(metric *metricInfo, systems []*systemInfo) []statData {
-	resC := make(chan []statData)
+func (systems systemsInfo) collectMetric(metric *metricInfo, timeout uint64) []statData {
+	metricC := make(chan []statData, len(systems))
 
-	go func(metric *metricInfo, systems []*systemInfo) {
-		var wg sync.WaitGroup
+	for _, system := range systems {
 
-		for _, system := range systems {
+		go func(metric *metricInfo, system *systemInfo) {
 
-			wg.Add(1)
-			go func(metric *metricInfo, system *systemInfo) {
-				defer wg.Done()
+			metricC <- system.getMetricData(metric)
+		}(metric, system)
+	}
 
-				resC <- getMetricSystemData(metric, system)
-			}(metric, system)
-		}
-		wg.Wait()
-		close(resC)
-	}(metric, systems)
+	i := 0
+	var sData []statData
+	timeAfter := time.After(time.Duration(timeout) * time.Second)
 
-	var statData []statData
-	for v := range resC {
-		if v != nil {
-			statData = append(statData, v...)
+stopReading:
+	for {
+		select {
+		case mc := <-metricC:
+			if mc != nil {
+				sData = append(sData, mc...)
+			}
+			i += 1
+			if len(systems) == i {
+				break stopReading
+			}
+		case <-timeAfter:
+			break stopReading
 		}
 	}
-	return statData
+	return sData
 }
 
 // get metric data for all systems application servers
-func getMetricSystemData(metric *metricInfo, system *systemInfo) []statData {
+func (system *systemInfo) getMetricData(metric *metricInfo) []statData {
 
 	resC := make(chan []statData)
 	go func(metric *metricInfo, system *systemInfo) {
