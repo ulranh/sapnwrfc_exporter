@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -51,6 +52,7 @@ type Config struct {
 	Secret       []byte
 	Systems      []*systemInfo
 	TableMetrics []*metricInfo
+	timeout      uint64
 }
 
 // help text for command usage
@@ -94,6 +96,10 @@ var paramMap = map[string]*struct {
 		value: "",
 		usage: "Path + name of toml config file",
 	},
+	"timeout": {
+		value: "10",
+		usage: "timeout of the hana connector in seconds",
+	},
 }
 
 // map of allowed commands
@@ -107,7 +113,7 @@ var commandMap = map[string]struct {
 		// help:   pwHelp,
 	},
 	"web": {
-		params: []string{"config", "port"},
+		params: []string{"config", "port", "timeout"},
 		// help:   wHelp,
 	},
 }
@@ -132,6 +138,12 @@ func Root() {
 	if err = config.parseConfigInfo(command); err != nil {
 		exit(fmt.Sprint("Problem with configfile content: ", err))
 	}
+
+	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	if err != nil {
+		exit(fmt.Sprint(" timeout flag has wrong type", err))
+	}
+
 	// run cmd
 	var cmdFunc = map[string]func(map[string]*string) error{
 		"pw":  config.pw,
