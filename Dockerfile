@@ -38,4 +38,4 @@ COPY --from=builder /app/sapnwrfc_exporter /app/sapnwrfc_exporter
 # COPY --from=builder /app/sapnwrfc_exporter.toml /app/sapnwrfc_exporter.toml
 
 EXPOSE 9663
-ENTRYPOINT ["/app/sapnwrfc_exporter","web","--port","9663","--config","/app/sapnwrfc_exporter.toml"]
+ENTRYPOINT ["/app/sapnwrfc_exporter","web","--port","9663","--config","/app/sapnwrfc_exporter.toml","--timeout","5"]
