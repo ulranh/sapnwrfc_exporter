@@ -44,6 +44,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   Server = "host1.example.com"
   Sysnr = "01"
 
+[[Systems]]
   Name = "t02"
   Usage = "test"
   Tags = ["erp"]
