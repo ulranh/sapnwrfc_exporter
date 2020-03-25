@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,10 @@ func (config *Config) web(flags map[string]*string) error {
 			"error": err,
 		}).Error("Can't add missing config data.")
 		return err
+	}
+	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	if err != nil {
+		exit(fmt.Sprint(" timeout flag has wrong type", err))
 	}
 
 	stats := func() []metricData {
