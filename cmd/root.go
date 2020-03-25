@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -34,7 +33,21 @@ type serverInfo struct {
 }
 
 // metric info
-type metricInfo struct {
+type tMetricInfo struct {
+	// Active       bool
+	Name       string
+	Help       string
+	MetricType string
+	TagFilter  []string
+	FuMo       string
+	Params     map[string]interface{}
+	Table      string
+	AllServers bool // ????
+	RowCount   map[string][]interface{}
+	RowFilter  map[string][]interface{}
+}
+
+type fMetricInfo struct {
 	// Active       bool
 	Name       string
 	Help       string
@@ -52,7 +65,8 @@ type metricInfo struct {
 type Config struct {
 	Secret       []byte
 	Systems      []*systemInfo
-	TableMetrics []*metricInfo
+	TableMetrics []*tMetricInfo
+	FieldMetrics []*fMetricInfo
 	timeout      uint64
 }
 
@@ -138,11 +152,6 @@ func Root() {
 	// parse config file
 	if err = config.parseConfigInfo(command); err != nil {
 		exit(fmt.Sprint("Problem with configfile content: ", err))
-	}
-
-	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
-	if err != nil {
-		exit(fmt.Sprint(" timeout flag has wrong type", err))
 	}
 
 	// run cmd

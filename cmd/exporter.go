@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,11 +38,20 @@ type statData struct {
 	labelValues []string
 }
 
+type metricInter interface {
+	getRfcData(system *systemInfo, server serverInfo) []statData
+}
+
 // start collector and web server
 func (config *Config) web(flags map[string]*string) error {
 
+	var err error
+	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	if err != nil {
+		exit(fmt.Sprint(" timeout flag has wrong type", err))
+	}
 	// append missing system data
-	err := config.appendMissingData()
+	err = config.appendMissingData()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -134,14 +144,28 @@ func (config *Config) appendMissingData() error {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	metricsC := make(chan metricData, len(config.TableMetrics))
-	// go func(metrics []*metricInfo, systems []*systemInfo) {
+	metricsC := make(chan metricData, len(config.TableMetrics)+len(config.FieldMetrics))
+	// go func(metrics []*tMetricInfo, systems []*systemInfo) {
 	var wg sync.WaitGroup
 
 	for _, metric := range config.TableMetrics {
 
 		wg.Add(1)
-		go func(metric *metricInfo, systems systemsInfo) {
+		go func(metric *tMetricInfo, systems systemsInfo) {
+			defer wg.Done()
+			metricsC <- metricData{
+				name:       metric.Name,
+				help:       metric.Help,
+				metricType: metric.MetricType,
+				stats:      systems.collectMetric(metric, config.timeout),
+			}
+		}(metric, config.Systems)
+	}
+
+	for _, metric := range config.FieldMetrics {
+
+		wg.Add(1)
+		go func(metric *fMetricInfo, systems systemsInfo) {
 			defer wg.Done()
 			metricsC <- metricData{
 				name:       metric.Name,
@@ -166,12 +190,13 @@ func (config *Config) collectMetrics() []metricData {
 }
 
 // start collecting metric information for all tenants
-func (systems systemsInfo) collectMetric(metric *metricInfo, timeout uint64) []statData {
+func (systems systemsInfo) collectMetric(metric metricInter, timeout uint64) []statData {
+	// func (systems systemsInfo) collectMetric(metric data, timeout uint64) []statData {
 	metricC := make(chan []statData, len(systems))
 
 	for _, system := range systems {
 
-		go func(metric *metricInfo, system *systemInfo) {
+		go func(metric metricInter, system *systemInfo) {
 
 			metricC <- system.getMetricData(metric)
 		}(metric, system)
@@ -200,24 +225,20 @@ stopReading:
 }
 
 // get metric data for all systems application servers
-func (system *systemInfo) getMetricData(metric *metricInfo) []statData {
+func (system *systemInfo) getMetricData(metric metricInter) []statData {
 
 	resC := make(chan []statData)
-	go func(metric *metricInfo, system *systemInfo) {
+	go func(metric metricInter, system *systemInfo) {
 		var wg sync.WaitGroup
 
 		for _, server := range system.servers {
 
 			wg.Add(1)
-			go func(metric *metricInfo, system *systemInfo, server serverInfo) {
+			go func(metric metricInter, system *systemInfo, server serverInfo) {
 				defer wg.Done()
-				resC <- getRfcData(metric, system, server)
+				resC <- metric.getRfcData(system, server)
 			}(metric, system, server)
 
-			// stop if fumo must be called only once
-			if !metric.AllServers {
-				break
-			}
 		}
 		wg.Wait()
 		close(resC)
@@ -232,11 +253,14 @@ func (system *systemInfo) getMetricData(metric *metricInfo) []statData {
 	return statData
 }
 
-type rfcData map[string]interface{}
-
+// type rfcData map[string]interface{}
 // get rfc data from sap system
-func getRfcData(metric *metricInfo, system *systemInfo, server serverInfo) []statData {
+func (metric *tMetricInfo) getRfcData(system *systemInfo, server serverInfo) []statData {
 
+	// stop if fumo must be called only once
+	if !metric.AllServers {
+		return nil
+	}
 	// connect to system/server
 	c, err := connect(system, server)
 	if err != nil {
@@ -251,8 +275,8 @@ func getRfcData(metric *metricInfo, system *systemInfo, server serverInfo) []sta
 	}
 
 	// call metrics function module
-	var res rfcData
-	res, err = c.Call(metric.FuMo, metric.Params)
+	// var res rfcData
+	res, err := c.Call(metric.FuMo, metric.Params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"system": system.Name,
@@ -262,16 +286,10 @@ func getRfcData(metric *metricInfo, system *systemInfo, server serverInfo) []sta
 		return nil
 	}
 
-	return res.collectTableData(metric, system, server)
-}
-
-// get table information - occurrences of specified table field values
-func (tableData rfcData) collectTableData(metric *metricInfo, system *systemInfo, server serverInfo) []statData {
-
 	var md []statData
 	count := make(map[string]float64)
 
-	for _, res := range tableData[metric.Table].([]interface{}) {
+	for _, res := range res[metric.Table].([]interface{}) {
 		line := res.(map[string]interface{})
 
 		if len(metric.RowFilter) == 0 || inFilter(line, metric.RowFilter) {
@@ -306,8 +324,16 @@ func (tableData rfcData) collectTableData(metric *metricInfo, system *systemInfo
 			md = append(md, data)
 		}
 	}
-
+	// return metric.collectData(res, system, server)
 	return md
+}
+
+func (metric *fMetricInfo) getRfcData(system *systemInfo, server serverInfo) []statData {
+	// func (metric *fMetricInfo) collectData(fieldData map[string]interface{}, system *systemInfo, server serverInfo) []statData {
+
+	fmt.Println("ulli: ")
+	// var md []statData
+	return nil
 }
 
 func inFilter(line map[string]interface{}, filter map[string][]interface{}) bool {
