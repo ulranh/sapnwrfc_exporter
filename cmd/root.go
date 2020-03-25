@@ -32,6 +32,7 @@ type serverInfo struct {
 	sysnr string
 }
 
+// !!!!!!!! beide unten zusammenfassen
 // metric info
 type tMetricInfo struct {
 	// Active       bool
@@ -48,17 +49,14 @@ type tMetricInfo struct {
 }
 
 type fMetricInfo struct {
-	// Active       bool
-	Name       string
-	Help       string
-	MetricType string
-	TagFilter  []string
-	FuMo       string
-	Params     map[string]interface{}
-	Table      string
-	AllServers bool // ????
-	RowCount   map[string][]interface{}
-	RowFilter  map[string][]interface{}
+	Name        string
+	Help        string
+	MetricType  string
+	TagFilter   []string
+	FuMo        string
+	Params      map[string]interface{}
+	FieldLabels []string
+	AllServers  bool // ????
 }
 
 // Config struct with config file infos

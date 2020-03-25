@@ -331,9 +331,62 @@ func (metric *tMetricInfo) getRfcData(system *systemInfo, server serverInfo) []s
 func (metric *fMetricInfo) getRfcData(system *systemInfo, server serverInfo) []statData {
 	// func (metric *fMetricInfo) collectData(fieldData map[string]interface{}, system *systemInfo, server serverInfo) []statData {
 
-	fmt.Println("ulli: ")
-	// var md []statData
-	return nil
+	// stop if fumo must be called only once
+	if !metric.AllServers {
+		return nil
+	}
+	// connect to system/server
+	c, err := connect(system, server)
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+
+	// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
+	// metric is not relevant for the tenant
+	if !subSliceInSlice(metric.TagFilter, system.Tags) {
+		return nil
+	}
+
+	// call metrics function module
+	// var res rfcData
+	res, err := c.Call(metric.FuMo, metric.Params)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"system": system.Name,
+			"server": server.name,
+			"error":  err,
+		}).Error("Can't call function module")
+		return nil
+	}
+
+	var fieldLabelValues []string
+	for _, label := range metric.FieldLabels {
+		fieldLabelValues = append(fieldLabelValues, res[strings.ToUpper(label)].(string))
+	}
+
+	var md []statData
+	labels := append([]string{"system", "usage", "server"}, metric.FieldLabels...)
+	labelValues := append([]string{strings.ToLower(system.Name), strings.ToLower(system.Usage), strings.ToLower(server.name)}, fieldLabelValues...)
+	// fmt.Println("ulli: ", labels)
+	// fmt.Println("ulli: ", labelValues)
+
+	if len(labels) != len(labelValues) {
+		log.WithFields(log.Fields{
+			"system": system.Name,
+			"server": server.name,
+		}).Error("getRfcData: len(labels) != len(labelValues)")
+		return nil
+
+	}
+
+	data := statData{
+		labels:      labels,
+		labelValues: labelValues,
+		value:       1,
+	}
+	md = append(md, data)
+	return md
 }
 
 func inFilter(line map[string]interface{}, filter map[string][]interface{}) bool {
