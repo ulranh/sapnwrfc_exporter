@@ -453,15 +453,15 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 // connect to sap system
 func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 	c, err := gorfc.ConnectionFromParams(
-		gorfc.ConnectionParameter{
-			Dest:   system.Name,
-			User:   system.User,
-			Passwd: system.password,
-			Client: system.Client,
-			Lang:   system.Lang,
+		gorfc.ConnectionParameters{
+			"Dest":   system.Name,
+			"User":   system.User,
+			"Passwd": system.password,
+			"Client": system.Client,
+			"Lang":   system.Lang,
 			// Lang:   "en",
-			Ashost: server.name,
-			Sysnr:  server.sysnr,
+			"Ashost": server.name,
+			"Sysnr":  server.sysnr,
 			// Ashost: config.Systems[s].Server,
 			// Sysnr:  config.Systems[s].Sysnr,
 			// Saprouter: "/H/203.13.155.17/S/3299/W/xjkb3d/H/172.19.137.194/H/",
