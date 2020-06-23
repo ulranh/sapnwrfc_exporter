@@ -159,7 +159,7 @@ func (config *Config) collectMetrics() []metricData {
 				name:       metric.Name,
 				help:       metric.Help,
 				metricType: metric.MetricType,
-				stats:      config.collectSystemsMetric(systems, metric),
+				stats:      systems.collectMetric(metric, config.timeout),
 			}
 		}(metric, config.Systems)
 	}
@@ -173,7 +173,7 @@ func (config *Config) collectMetrics() []metricData {
 				name:       metric.Name,
 				help:       metric.Help,
 				metricType: metric.MetricType,
-				stats:      config.collectSystemsMetric(systems, metric),
+				stats:      systems.collectMetric(metric, config.timeout),
 			}
 		}(metric, config.Systems)
 	}
@@ -192,7 +192,7 @@ func (config *Config) collectMetrics() []metricData {
 }
 
 // start collecting metric information for all tenants
-func (config *Config) collectSystemsMetric(systems systemsInfo, metric metricInter) []statData {
+func (systems systemsInfo) collectMetric(metric metricInter, timeout uint64) []statData {
 	// func (systems systemsInfo) collectMetric(metric data, timeout uint64) []statData {
 	metricC := make(chan []statData, len(systems))
 
@@ -200,13 +200,13 @@ func (config *Config) collectSystemsMetric(systems systemsInfo, metric metricInt
 
 		go func(metric metricInter, system *systemInfo) {
 
-			metricC <- config.collectSystemMetric(system, metric)
+			metricC <- system.getMetricData(metric)
 		}(metric, system)
 	}
 
 	i := 0
 	var sData []statData
-	timeAfter := time.After(time.Duration(config.timeout) * time.Second)
+	timeAfter := time.After(time.Duration(timeout) * time.Second)
 
 stopReading:
 	for {
@@ -227,7 +227,7 @@ stopReading:
 }
 
 // get metric data for all systems application servers
-func (config *Config) collectSystemMetric(system *systemInfo, metric metricInter) []statData {
+func (system *systemInfo) getMetricData(metric metricInter) []statData {
 
 	resC := make(chan []statData)
 	go func(metric metricInter, system *systemInfo) {
