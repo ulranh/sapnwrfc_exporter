@@ -113,14 +113,10 @@ Below is a description of the system and metric struct fields:
 
 #### FieldMetric information
 
+Name, Help, MetricType, TagFilter, FunctionModule and AllServers same as above.
+
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| Name         | string       | Metric name | "sap_processes" |
-| Help         | string       | Metric help text | "Number of sm50 processes"|
-| MetricType   | string       | Type of metric | "counter" or "gauge" |
-| TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
-| FunctionModule | string       | Function module name | "TH_SAPREL2" |
-| AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
 | FieldLabels  | string array | FuMo export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
 
 #### Database passwords
