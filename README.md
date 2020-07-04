@@ -4,7 +4,7 @@ The purpose of this exporter is to support monitoring SAP instances with [Promet
 
 ## Prerequisites
 
-You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50 and the [gorfc](https://github.com/SAP/gorfc) readme.
+You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note "2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50" and the [gorfc](https://github.com/SAP/gorfc) readme.
 
 With the nwrfcsdk zip file unpacked in /usr/sap, the following environment variables are necessary under Linux:
 
@@ -104,7 +104,7 @@ Below is a description of the system and metric struct fields:
 | Help         | string       | Metric help text | "Number of sm50 processes"|
 | MetricType   | string       | Type of metric | "counter" or "gauge" |
 | TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
-| FuMo         | string       | Function module | "TH_WPINFO" |
+| FunctionModule | string       | Function module name | "TH_WPINFO" |
 | Table        | string       | Result table of function module | "WPLIST" |
 | AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
 | TableMetrics.Params | map[string]interface{} | Params of the function module |  |
@@ -115,6 +115,11 @@ Below is a description of the system and metric struct fields:
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
+| Name         | string       | Metric name | "sap_processes" |
+| Help         | string       | Metric help text | "Number of sm50 processes"|
+| MetricType   | string       | Type of metric | "counter" or "gauge" |
+| TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
+| FunctionModule | string       | Function module name | "TH_SAPREL2" |
 | FieldLabels  | string array | FuMo export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
 
 #### Database passwords
@@ -178,3 +183,6 @@ The resulting information can be found in the Prometheus expression browser and 
 The image below for example shows the number of active dialog, batch and update processes at a given time:
 
  ![processes](/examples/images/processes.png)
+
+## More Information
+* [Monitoring SAP and Hana Instances with Prometheus and Grafana](https://blogs.sap.com/2020/02/07/monitoring-sap-and-hana-instances-with-prometheus-and-grafana/) 
