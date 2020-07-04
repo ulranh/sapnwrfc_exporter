@@ -4,7 +4,7 @@ The purpose of this exporter is to support monitoring SAP instances with [Promet
 
 ## Prerequisites
 
-You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50.
+You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50 and the [gorfc](https://github.com/SAP/gorfc) readme.
 
 With the nwrfcsdk zip file unpacked in /usr/sap, the following environment variables are necessary under Linux:
 
