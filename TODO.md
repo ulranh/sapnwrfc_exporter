@@ -1,3 +1,4 @@
+* testen, ob die toml file werte in anführungszeichen grß/klein geschrieben werden können
 * structs,variablen einheitlich benennen: systemdData, sData
 * interessant FuBas
     /SDF/SCSI_GET_HARDWARE_INFO
