@@ -4,7 +4,7 @@ The purpose of this exporter is to support monitoring SAP instances with [Promet
 
 ## Prerequisites
 
-!!!!!!!!!!!!! new sapnwrfc is needed
+---- !!!!!!!!!!!!! new sapnwrfc is needed
 
 You need the SAP NW RFC library as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50.
 
