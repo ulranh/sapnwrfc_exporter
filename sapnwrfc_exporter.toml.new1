@@ -1,0 +1,77 @@
+Secret = [10, 45, 10, 9, 115, 101, 99, 114, 101, 116, 107, 101, 121, 18, 32, 127, 17, 172, 66, 160, 43, 115, 14, 177, 122, 83, 129, 200, 254, 93, 113, 36, 138, 53, 8, 14, 47, 188, 43, 101, 126, 64, 107, 166, 228, 41, 190, 10, 57, 10, 3, 112, 48, 49, 18, 50, 195, 17, 244, 223, 13, 167, 125, 196, 200, 178, 115, 53, 88, 197, 235, 200, 120, 106, 151, 151, 150, 238, 30, 117, 199, 171, 49, 197, 92, 34, 153, 69, 86, 194, 210, 178, 218, 46, 243, 191, 49, 64, 241, 159, 80, 239, 207, 218, 216, 98, 10, 57, 10, 3, 113, 48, 49, 18, 50, 234, 50, 60, 0, 162, 41, 93, 110, 157, 7, 177, 163, 146, 76, 193, 250, 252, 38, 226, 248, 199, 122, 141, 21, 207, 17, 68, 156, 103, 39, 158, 142, 22, 236, 205, 139, 23, 203, 38, 146, 57, 73, 54, 82, 229, 83, 76, 190, 26, 248, 10, 57, 10, 3, 113, 98, 49, 18, 50, 205, 27, 30, 229, 220, 237, 213, 180, 133, 125, 222, 14, 221, 56, 50, 127, 251, 39, 106, 9, 87, 182, 20, 70, 248, 74, 195, 237, 22, 190, 45, 58, 24, 140, 130, 125, 224, 247, 58, 156, 216, 245, 114, 115, 180, 206, 237, 200, 88, 87]
+
+[[Systems]]
+  Name = "q01"
+  Usage = "test"
+  Tags = ["erp"]
+  User = "sapaut"
+  Lang = "en"
+  Client = "100"
+  Server = "euleq01"
+  Sysnr = "01"
+
+[[Systems]]
+  Name = "qb1"
+  Usage = "test"
+  Tags = ["bw"]
+  User = "sapaut"
+  Lang = "en"
+  Client = "100"
+  Server = "bwq01"
+  Sysnr = "21"
+
+[[TableMetrics]]
+  Name = "sap_users"
+  Help = "sm04 help"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FuMo = "TH_USER_LIST"
+  Table = "USRLIST"
+  [TableMetrics.RowCount]
+    Guiversion = ["76", "75", "74"]
+    Mandt = ["000", "090", "100", "400"]
+    Type = [4]
+  [TableMetrics.RowFilter]
+
+[[TableMetrics]]
+  name = "sap_lock_entries"
+  help = "sm12 help"
+  metricType = "gauge"
+  tagFilter = ["all"]
+  allServers = false
+  functionModule = "ENQUE_READ"
+  table = "ENQ"
+  [TableMetrics.Params]
+    GARG = ""
+    GCLIENT = ""
+    GNAME = ""
+    GUNAME = ""
+  [TableMetrics.rowCount]
+    gclient = ["000", "090", "100", "400"]
+  [TableMetrics.rowFilter]
+
+[[TableMetrics]]
+  Name = "sap_processes"
+  Help = "sm50 help"
+  MetricType = "gauge"
+  TagFilter = ["all"]
+  AllServers = true
+  FuMo = "TH_WPINFO"
+  [TableMetrics.Params]
+    SRVNAME = ""
+  Table = "WPLIST"
+  [TableMetrics.RowCount]
+    WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
+    WP_TYP = ["dia", "btc", "upd", "upd2"]
+  [TableMetrics.RowFilter]
+    WP_STATUS = ["on hold", "running"]
+
+[[FieldMetrics]]
+  Name = "sap_kernel_info"
+  Help = "SAP kernel and db client info"
+  MetricType = "gauge"
+  TagFilter = []
+  FuMo = "TH_SAPREL2"
+  AllServers = true
+  FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]

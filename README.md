@@ -3,6 +3,9 @@
 The purpose of this exporter is to support monitoring SAP instances with [Prometheus](https://prometheus.io) and [Grafana](https://grafana.com). At the moment it is possible to count the occurrence for some defined values of a field in a SAP function module result table - for example the number of dialog, batch and update processes or the number of the SAP lock entries at a given time.
 
 ## Prerequisites
+
+!!!!!!!!!!!!! new sapnwrfc is needed
+
 You need the SAP NW RFC library as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50.
 
 With the nwrfcsdk zip file unpacked in /usr/sap, the following environment variables are necessary under Linux:

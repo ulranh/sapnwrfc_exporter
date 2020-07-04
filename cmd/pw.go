@@ -78,10 +78,10 @@ func (config *Config) newSecret(secret internal.Secret, systems *string, pw []by
 
 	sysMap := make(map[string]bool)
 	for _, sys := range strings.Split(*systems, ",") {
-		sysMap[strings.ToLower(sys)] = false
+		sysMap[low(sys)] = false
 	}
 	for _, sys := range config.Systems {
-		sysName := strings.ToLower(sys.Name)
+		sysName := low(sys.Name)
 
 		// check if pw system exists in configfile system slice
 		if _, ok := sysMap[sysName]; !ok {

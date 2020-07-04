@@ -55,7 +55,7 @@ type fieldInfo struct {
 
 type dataReceiver interface {
 	// specialData(rawData map[string]interface{}, sName, usage, srvName string) []statData
-	metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord
+	metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []statData
 }
 
 type tableMetric struct {
