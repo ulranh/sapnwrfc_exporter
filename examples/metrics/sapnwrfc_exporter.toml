@@ -14,7 +14,7 @@
   Help = "sm04 help"
   MetricType = "gauge"
   TagFilter = []
-  FuMo = "TH_USER_LIST"
+  FunctionModule = "TH_USER_LIST"
   AllServers = true
   Table = "USRLIST"
   [TableMetrics.Params]
@@ -29,7 +29,7 @@
   Help = "sm12 help"
   MetricType = "gauge"
   TagFilter = []
-  FuMo = "ENQUE_READ"
+  FunctionModule = "ENQUE_READ"
   AllServers = false
   Table = "ENQ"
   [TableMetrics.Params]
@@ -46,7 +46,7 @@
   Help = "sm50 help"
   MetricType = "gauge"
   TagFilter = []
-  FuMo = "TH_WPINFO"
+  FunctionModule = "TH_WPINFO"
   AllServers = true
   Table = "WPLIST"
   [TableMetrics.Params]
@@ -56,3 +56,12 @@
     WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
   [TableMetrics.RowFilter]
     WP_STATUS = ["on hold", "running"]
+
+[[FieldMetrics]]
+  Name = "sap_kernel_info"
+  Help = "SAP kernel and db client info"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "TH_SAPREL2"
+  fieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]

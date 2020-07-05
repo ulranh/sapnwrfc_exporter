@@ -114,21 +114,17 @@ func (config *Config) web(flags map[string]*string) error {
 func (config *Config) collectMetrics() []metricData {
 
 	mDataC := make(chan metricData, len(config.metrics))
-	// metricsC := make(chan metricData)
 	var wg sync.WaitGroup
 
-	// wg.Add(len(config.Metrics))
 	for mPos := range config.metrics {
-		// log.Println("1111111111111111111: ", config.metrics[mPos])
 
 		wg.Add(1)
 		go func(mPos int) {
 			defer wg.Done()
-			// !!!!!! zusammenfassen
 			mDataC <- metricData{
-				name:       config.metrics[mPos].Name,
+				name:       low(config.metrics[mPos].Name),
 				help:       config.metrics[mPos].Help,
-				metricType: config.metrics[mPos].MetricType,
+				metricType: low(config.metrics[mPos].MetricType),
 				stats:      config.collectSystemsMetric(mPos),
 			}
 		}(mPos)
@@ -150,7 +146,6 @@ func (config *Config) collectMetrics() []metricData {
 // start collecting metric information for all tenants
 func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 	mRecordsC := make(chan []metricRecord, len(config.Systems))
-	// metricC := make(chan []statData)
 	var wg sync.WaitGroup
 
 	for sPos := range config.Systems {
@@ -173,26 +168,23 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 	return sData
 }
 
-// get metric data for all systems application servers
+// get metric data for the system application servers
 func (config *Config) collectServersMetric(mPos, sPos int) []metricRecord {
 
 	servers := config.Systems[sPos].servers
 	if !config.metrics[mPos].AllServers {
-		// only one server is needed
+		// only one server is needed with option AllServers=false
 		servers = config.Systems[sPos].servers[:1]
 	}
-	log.Println("333333333333333: ", config.metrics[mPos].Name, servers)
 
 	srvCnt := len(servers)
 	mRecordsC := make(chan []metricRecord, srvCnt)
 
-	// !!!!!!!!!!!!!!! fuer server auch den index nehmen
 	for srvPos := range servers {
 
 		go func(srvPos int) {
 			mRecordsC <- config.getRfcData(mPos, sPos, srvPos)
 		}(srvPos)
-
 	}
 
 	i := 0
@@ -214,10 +206,10 @@ stopReading:
 			break stopReading
 		}
 	}
-	// log.Println("222222222222222: ", sData)
 	return srvData
 }
 
+// get data from sap system
 func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
 
 	// connect to system/server
@@ -233,8 +225,16 @@ func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
 		return nil
 	}
 
-	// call metrics function module
-	raw, err := c.Call(config.metrics[mPos].FunctionModule, config.metrics[mPos].Params)
+	// check if all param keys are uppercase otherwise the function call returns an error
+	for k, v := range config.metrics[mPos].Params {
+		upKey := up(k)
+		if !(upKey == k) {
+			config.metrics[mPos].Params[upKey] = v
+			delete(config.metrics[mPos].Params, k)
+		}
+	}
+	// call function module
+	rawData, err := c.Call(up(config.metrics[mPos].FunctionModule), config.metrics[mPos].Params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"system": config.Systems[sPos].Name,
@@ -243,15 +243,17 @@ func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
 		}).Error("Can't call function module")
 		return nil
 	}
-	// log.Println(raw)
-	return config.metrics[mPos].metricData(raw, config.Systems[sPos], config.Systems[sPos].servers[srvPos].name)
+
+	// return table- or field metric data
+	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], config.Systems[sPos].servers[srvPos].name)
 }
 
+// retrieve table data
 func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
 	var md []metricRecord
 	count := make(map[string]float64)
 
-	for _, res := range rawData[tMetric.Table].([]interface{}) {
+	for _, res := range rawData[up(tMetric.Table)].([]interface{}) {
 		line := res.(map[string]interface{})
 
 		if len(tMetric.RowFilter) == 0 || inFilter(line, tMetric.RowFilter) {
@@ -259,7 +261,6 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *syst
 				for _, value := range values {
 					namePart := low(interface2String(value))
 					if "" == namePart {
-						// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 						log.WithFields(log.Fields{
 							"value":  namePart,
 							"system": system.Name,
@@ -288,14 +289,14 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *syst
 		}
 	}
 	return md
-
 }
 
+// retrieve field data
 func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
 
 	var fieldLabelValues []string
 	for _, label := range fMetric.FieldLabels {
-		fieldLabelValues = append(fieldLabelValues, rawData[up(label)].(string))
+		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
 	}
 
 	var md []metricRecord

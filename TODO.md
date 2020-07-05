@@ -1,3 +1,4 @@
+* tag filter testen
 * testen, ob die toml file werte in anführungszeichen grß/klein geschrieben werden können
 * structs,variablen einheitlich benennen: systemdData, sData
 * interessant FuBas
@@ -19,3 +20,6 @@
 * prerequisite gorfc
 * neue sapnwrfc Bibliothek ist nötig
 
+### Changes
+* Groß/Kleinschreibung im toml file und bei pw setzen sollte kein problem mehr sein
+* a lot structure changes

@@ -11,7 +11,7 @@ import (
 	"github.com/ulranh/sapnwrfc_exporter/internal"
 )
 
-// connect to sap system
+// establish connection to sap system
 func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 	c, err := gorfc.ConnectionFromParams(
 		gorfc.ConnectionParameters{
@@ -39,8 +39,7 @@ func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 	return c, nil
 }
 
-// !!!!!!!!!!!!!!!! noch weiter splitten
-// append system password and system servers to config.Systems
+// add passwords and system servers to config.Systems
 func (config *Config) addSystemData() error {
 	var secret internal.Secret
 
@@ -97,6 +96,20 @@ func (config *Config) addSystemData() error {
 	return nil
 }
 
+// convert interface int values to string
+func interface2String(namePart interface{}) string {
+
+	switch val := namePart.(type) {
+	case string:
+		return val
+	case int64, int32, int16, int8, int, uint64, uint32, uint8, uint:
+		// return strconv.FormatInt(val, 10)
+		return fmt.Sprint(val)
+	default:
+		return ""
+	}
+}
+
 // true if every item in sublice exists in slice
 func subSliceInSlice(subSlice []string, slice []string) bool {
 	for _, vs := range subSlice {
@@ -129,18 +142,4 @@ func inFilter(line map[string]interface{}, filter map[string][]interface{}) bool
 	}
 	return false
 
-}
-
-// convert interface int values to string
-func interface2String(namePart interface{}) string {
-
-	switch val := namePart.(type) {
-	case string:
-		return val
-	case int64, int32, int16, int8, int, uint64, uint32, uint8, uint:
-		// return strconv.FormatInt(val, 10)
-		return fmt.Sprint(val)
-	default:
-		return ""
-	}
 }

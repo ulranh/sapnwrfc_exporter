@@ -31,6 +31,7 @@ type systemInfo struct {
 	password string
 }
 
+// standard metric info
 type metricInfo struct {
 	Name           string
 	Help           string
@@ -39,22 +40,22 @@ type metricInfo struct {
 	AllServers     bool
 	FunctionModule string
 	Params         map[string]interface{}
-	// Special    interface{}
-	// Special dataReceiver
 }
 
+// specific table metric info
 type tableInfo struct {
 	Table     string
 	RowCount  map[string][]interface{}
 	RowFilter map[string][]interface{}
 }
 
+// specific field metric info
 type fieldInfo struct {
 	FieldLabels []string
 }
 
+// interface for different handling of table- and field metrics
 type dataReceiver interface {
-	// specialData(rawData map[string]interface{}, sName, usage, srvName string) []statData
 	metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord
 }
 
@@ -73,15 +74,13 @@ type entireMetric struct {
 	dataReceiver
 }
 
-// config file infos
+// config information for the whole process
 type Config struct {
-	Secret []byte
-	//  !!!!!!!!!!!!!!!!!!!!
-	// Systems []systemInfo
-	Systems      []*systemInfo
-	TableMetrics []tableMetric
-	FieldMetrics []fieldMetric
-	metrics      []entireMetric
+	Secret       []byte
+	Systems      []*systemInfo  // system info from toml file
+	TableMetrics []tableMetric  // table metric info from toml file
+	FieldMetrics []fieldMetric  // field metric info from toml file
+	metrics      []entireMetric // table- and field-info condensed
 	timeout      uint64
 }
 
@@ -101,12 +100,11 @@ var (
 	errCmdFlagMissing    = errors.New("\nCmd Problem: a required cmd flag is missing.")
 	errCmdFileMissing    = errors.New("\nCmd Problem: no configfile found.")
 	errConfSecretMissing = errors.New("\nthe secret info is missing. Please add the passwords with \"sapnwrfc_exporter pw -system <system>\"")
-	errConfsystemMissing = errors.New("\nthe system info is missing.")
+	errConfSystemMissing = errors.New("\nthe system info is missing.")
 	errConfMetricMissing = errors.New("\nthe metric info is missing.")
-	// !!!!!!!!!!!!!!!!!!!!!!!!! anpassen
-	errConfsystem     = errors.New("\nat least one of the required system fields Name,ConnStr or User is empty.")
-	errConfMetric     = errors.New("\nat least one of the required metric fields Name,Help,MetricType is empty.")
-	errConfMetricType = errors.New("\nat least one of the existing MetricType fields does not contain the allowed content counter or gauge.")
+	errConfSystem        = errors.New("\nat least one of the required system fields Name,Usage,Lang,Server,Sysnr,Client or User is empty.")
+	errConfMetric        = errors.New("\nat least one of the required metric fields Name,Help,MetricType is empty.")
+	errConfMetricType    = errors.New("\nat least one of the existing MetricType fields does not contain the allowed content counter or gauge.")
 )
 
 // map of allowed parameters
@@ -164,26 +162,13 @@ func Root() {
 		exit(fmt.Sprint("Problem with configfile decoding: ", err))
 	}
 
-	// fmt.Println("######: ", config.TableMetrics)
-	// fmt.Println("######: ", config.TableMetrics[0].metricInfo)
-	// fmt.Println("######: ", config.TableMetrics[0].tableInfo)
-	// fmt.Println("######: ", config.FieldMetrics[0].metricInfo)
-	// fmt.Println("######: ", config.FieldMetrics[0].fieldInfo)
-
 	// consollidate the different metric types
 	for _, m := range config.TableMetrics {
 		config.metrics = append(config.metrics, entireMetric{m.metricInfo, m.tableInfo})
-		fmt.Println("====== ", m)
-		// 	// fmt.Println("------- ", m[k].Special)
 	}
 	for _, m := range config.FieldMetrics {
 		config.metrics = append(config.metrics, entireMetric{m.metricInfo, m.fieldInfo})
-		fmt.Println("+++++++++ ", m)
-		// 	// fmt.Println("------- ", m[k].Special)
 	}
-	// os.Exit(1)
-	// var sdata metricData
-	// sdata = config.TableMetrics[0].Data
 
 	// parse config file
 	if err = config.parseConfigInfo(command); err != nil {
@@ -269,14 +254,14 @@ func (config *Config) parseConfigInfo(cmd string) error {
 		return errConfSecretMissing
 	}
 	if 0 == len(config.Systems) {
-		return errConfsystemMissing
+		return errConfSystemMissing
 	}
 	if 0 == len(config.metrics) {
 		return errConfMetricMissing
 	}
 	for _, system := range config.Systems {
 		if 0 == len(system.Name) || 0 == len(system.Usage) || 0 == len(system.User) || 0 == len(system.Lang) || 0 == len(system.Client) || 0 == len(system.Server) || 0 == len(system.Sysnr) {
-			return errConfsystem
+			return errConfSystem
 		}
 	}
 	for _, metric := range config.metrics {
