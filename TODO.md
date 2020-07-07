@@ -23,3 +23,4 @@
 ### Changes
 * Groß/Kleinschreibung im toml file und bei pw setzen sollte kein problem mehr sein
 * a lot structure changes
+* FunctionModule instead of FuMo

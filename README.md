@@ -60,7 +60,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   Help = "Number of sm50 processes"
   MetricType = "gauge"
   TagFilter = []
-  FuMo = "TH_WPINFO"
+  FunctionModule = "TH_WPINFO"
   Table = "WPLIST"
   AllServers = true
   [TableMetrics.Params]
@@ -128,7 +128,7 @@ Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.P
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| FieldLabels  | string array | FuMo export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
+| FieldLabels  | string array | Function module export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
 
 #### Database passwords
 
