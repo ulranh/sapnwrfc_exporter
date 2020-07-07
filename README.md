@@ -79,6 +79,17 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   AllServers = true
   FunctionModule = "TH_SAPREL2"
   FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
+
+[[FieldMetrics]]
+ Name = "sap_sta_pi_version"
+ Help = "SAP ST-A/Pi version info"
+ MetricType = "gauge"
+ TagFilter = []
+ FunctionModule = "ANST_OCS_GET_COMPONENT_STATE"
+ FieldLabels = ["ev_comp_rel", "ev_comp_spp_level"]
+ AllServers = false
+ [FieldMetrics.Params]
+   IV_COMPONENT = "ST-A/PI"
 ```
 
 Below is a description of the system and metric struct fields:
@@ -100,20 +111,20 @@ Below is a description of the system and metric struct fields:
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| Name         | string       | Metric name | "sap_processes" |
+| Name         | string       | Metric name (words separated by underscore, otherwise a panic can occur) | "sap_processes" |
 | Help         | string       | Metric help text | "Number of sm50 processes"|
 | MetricType   | string       | Type of metric | "counter" or "gauge" |
 | TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
+| AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
 | FunctionModule | string       | Function module name | "TH_WPINFO" |
 | Table        | string       | Result table of function module | "WPLIST" |
-| AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
 | TableMetrics.Params | map[string]interface{} | Params of the function module |  |
 | TableMetrics.RowCount | map[string]interface{} | Values of a table result field, that should be counted  |  |
 | TableMetrics.RowFilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped|  |
 
 #### FieldMetric information
 
-Name, Help, MetricType, TagFilter, FunctionModule and AllServers same as above.
+Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.Params same as above.
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |

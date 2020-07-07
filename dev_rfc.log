@@ -224,3 +224,39 @@ NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 
 	The UUID daemon (uuidd) is not active.
 Please ask your system administrator to activate uuidd according to SAP note 1391070.
 
+
+**** Log file opened at 2020-07-07 18:01:54.374560 UTC+02:00 (GMT), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 09:04:28
+ CPIC library: 753.2019.10.14 version 3, NI library: 40, Kernel Release: 753 Patch Level 525
+ Current working directory: /home/ulli/lang/go/src/github.com/ulranh/sapnwrfc_exporter, Program: sapnwrfc_exporter
+ Hardware: AMD/Intel x86_64 with Linux x86_64, Operating_system: Linux 5.7.6-arch1-1
+ Hostname: jordan, IP address: 192.168.2.251, IPv6 address: fe80::4f9d:d44b:cce:8ca8
+
+2020-07-07 18:01:54.374762 [140458720872384] >> Error entry
+	The UUID daemon (uuidd) is not active.
+Please ask your system administrator to activate uuidd according to SAP note 1391070.
+
+
+**** Log file opened at 2020-07-07 18:02:21.088628 UTC+02:00 (GMT), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 09:04:28
+ CPIC library: 753.2019.10.14 version 3, NI library: 40, Kernel Release: 753 Patch Level 525
+ Current working directory: /home/ulli/lang/go/src/github.com/ulranh/sapnwrfc_exporter, Program: sapnwrfc_exporter
+ Hardware: AMD/Intel x86_64 with Linux x86_64, Operating_system: Linux 5.7.6-arch1-1
+ Hostname: jordan, IP address: 192.168.2.251, IPv6 address: fe80::4f9d:d44b:cce:8ca8
+
+2020-07-07 18:02:21.088664 [140226256353216] >> Error entry
+	The UUID daemon (uuidd) is not active.
+Please ask your system administrator to activate uuidd according to SAP note 1391070.
+
+
+**** Log file opened at 2020-07-07 18:04:56.287538 UTC+02:00 (GMT), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 09:04:28
+ CPIC library: 753.2019.10.14 version 3, NI library: 40, Kernel Release: 753 Patch Level 525
+ Current working directory: /home/ulli/lang/go/src/github.com/ulranh/sapnwrfc_exporter, Program: sapnwrfc_exporter
+ Hardware: AMD/Intel x86_64 with Linux x86_64, Operating_system: Linux 5.7.6-arch1-1
+ Hostname: jordan, IP address: 192.168.2.251, IPv6 address: fe80::4f9d:d44b:cce:8ca8
+
+2020-07-07 18:04:56.287588 [139854195230656] >> Error entry
+	The UUID daemon (uuidd) is not active.
+Please ask your system administrator to activate uuidd according to SAP note 1391070.
+
