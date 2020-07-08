@@ -1,18 +1,19 @@
 ## SAP NWRFC Exporter for Prometheus  [![Go Report Card](https://goreportcard.com/badge/github.com/ulranh/sapnwrfc_exporter)](https://goreportcard.com/report/github.com/ulranh/sapnwrfc_exporter)
 
-The purpose of this exporter is to support monitoring SAP instances with [Prometheus](https://prometheus.io) and [Grafana](https://grafana.com). At the moment it is possible to count the occurrence for some defined values of a field in a SAP function module result table - for example the number of dialog, batch and update processes or the number of the SAP lock entries at a given time.
+The purpose of this exporter is to support monitoring SAP instances with [Prometheus](https://prometheus.io) and [Grafana](https://grafana.com). It is possible to count the occurrence for some defined values of a field in a SAP function module result table - for example the number of dialog, batch and update processes or the number of the SAP lock entries at a given time. Another possibility is to use the export field results of a function module as prometheus label values - for example to record the database client version and kernel patch level of the SAP instance.
 
 ## Prerequisites
-You need the SAP NW RFC library as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note 2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50.
+
+You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note "2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50" and the [gorfc](https://github.com/SAP/gorfc) readme.
 
 With the nwrfcsdk zip file unpacked in /usr/sap, the following environment variables are necessary under Linux:
 
 ```
-LD_LIBRARY_PATH=/usr/sap/nwrfcsdk/lib
-CGO_LDFLAGS=-L /usr/sap/nwrfcsdk/lib
-CGO_CFLAGS=-I /usr/sap/nwrfcsdk/include
-CGO_LDFLAGS_ALLOW=^.*
-CGO_CFLAGS_ALLOW=^.*
+LD_LIBRARY_PATH="/usr/sap/nwrfcsdk/lib"
+CGO_LDFLAGS="-L /usr/sap/nwrfcsdk/lib"
+CGO_CFLAGS="-I /usr/sap/nwrfcsdk/include"
+CGO_LDFLAGS_ALLOW="^.*"
+CGO_CFLAGS_ALLOW="^.*"
 ```
 
 ## Installation
@@ -37,7 +38,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
 [[Systems]]
   Name = "t01"
   Usage = "test"
-  Tags = ["erp"]
+  Tags = []
   User = "sapuser1"
   Lang = "en"
   Client = "100"
@@ -47,7 +48,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
 [[Systems]]
   Name = "t02"
   Usage = "test"
-  Tags = ["erp"]
+  Tags = []
   User = "sapuser2"
   Lang = "en"
   Client = "100"
@@ -59,7 +60,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   Help = "Number of sm50 processes"
   MetricType = "gauge"
   TagFilter = []
-  FuMo = "TH_WPINFO"
+  FunctionModule = "TH_WPINFO"
   Table = "WPLIST"
   AllServers = true
   [TableMetrics.Params]
@@ -69,6 +70,26 @@ The file contains a Systems slice followed by a TableMetrics Slice:
     WP_TYP = ["dia", "bgd", "upd", "upd2", "spo"] # with logon language "de": ["dia", "btc", "upd", "upd2", "spo"] 
   [TableMetrics.RowFilter]
     WP_STATUS = ["on hold", "running"] # with logon language "de": ["hält", "läuft"]
+
+[[FieldMetrics]]
+  Name = "sap_kernel_info"
+  Help = "SAP kernel and db client info"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "TH_SAPREL2"
+  FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
+
+[[FieldMetrics]]
+ Name = "sap_sta_pi_version"
+ Help = "SAP ST-A/Pi version info"
+ MetricType = "gauge"
+ TagFilter = []
+ FunctionModule = "ANST_OCS_GET_COMPONENT_STATE"
+ FieldLabels = ["ev_comp_rel", "ev_comp_spp_level"]
+ AllServers = false
+ [FieldMetrics.Params]
+   IV_COMPONENT = "ST-A/PI"
 ```
 
 Below is a description of the system and metric struct fields:
@@ -90,16 +111,24 @@ Below is a description of the system and metric struct fields:
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| Name         | string       | Metric name | "sap_processes" |
+| Name         | string       | Metric name (words separated by underscore, otherwise a panic can occur) | "sap_processes" |
 | Help         | string       | Metric help text | "Number of sm50 processes"|
 | MetricType   | string       | Type of metric | "counter" or "gauge" |
 | TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
-| FuMo         | string       | Function module | "TH_WPINFO" |
-| Table        | string       | Result table of function module | "WPLIST" |
 | AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
+| FunctionModule | string       | Function module name | "TH_WPINFO" |
+| Table        | string       | Result table of function module | "WPLIST" |
 | TableMetrics.Params | map[string]interface{} | Params of the function module |  |
 | TableMetrics.RowCount | map[string]interface{} | Values of a table result field, that should be counted  |  |
 | TableMetrics.RowFilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped|  |
+
+#### FieldMetric information
+
+Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.Params same as above.
+
+| Field        | Type         | Description | Example |
+| ------------ | ------------ |------------ | ------- |
+| FieldLabels  | string array | Function module export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
 
 #### Database passwords
 
@@ -162,3 +191,6 @@ The resulting information can be found in the Prometheus expression browser and 
 The image below for example shows the number of active dialog, batch and update processes at a given time:
 
  ![processes](/examples/images/processes.png)
+
+## More Information
+* [Monitoring SAP and Hana Instances with Prometheus and Grafana](https://blogs.sap.com/2020/02/07/monitoring-sap-and-hana-instances-with-prometheus-and-grafana/) 

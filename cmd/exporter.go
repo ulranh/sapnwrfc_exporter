@@ -8,13 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sap/gorfc/gorfc"
 	log "github.com/sirupsen/logrus"
-	"github.com/ulranh/sapnwrfc_exporter/internal"
 )
 
 type collector struct {
@@ -29,24 +26,62 @@ type metricData struct {
 	name       string
 	help       string
 	metricType string
-	stats      []statData
+	stats      []metricRecord
 }
 
-type statData struct {
+type metricRecord struct {
 	value       float64
 	labels      []string
 	labelValues []string
 }
 
+// Describe implements prometheus.Collector.
+func (c *collector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(c, ch)
+}
+
+// Collect implements prometheus.Collector.
+func (c *collector) Collect(ch chan<- prometheus.Metric) {
+	// Take a stats snapshot.  Must be concurrency safe.
+	stats := c.stats()
+
+	var valueType = map[string]prometheus.ValueType{
+		"gauge":   prometheus.GaugeValue,
+		"counter": prometheus.CounterValue,
+	}
+	for _, mi := range stats {
+		for _, v := range mi.stats {
+			m := prometheus.MustNewConstMetric(
+				prometheus.NewDesc(low(mi.name), mi.help, v.labels, nil),
+				valueType[low(mi.metricType)],
+				v.value,
+				v.labelValues...,
+			)
+			ch <- m
+		}
+	}
+}
+
+func newCollector(stats func() []metricData) *collector {
+	return &collector{
+		stats: stats,
+	}
+}
+
 // start collector and web server
 func (config *Config) web(flags map[string]*string) error {
 
-	// append missing system data
-	err := config.appendMissingData()
+	var err error
+	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	if err != nil {
+		exit(fmt.Sprint(" timeout flag has wrong type", err))
+	}
+	// add missing system data
+	err = config.addSystemData()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Can't add missing config data.")
+		}).Error("Can't add missing system data.")
 		return err
 	}
 	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
@@ -79,171 +114,110 @@ func (config *Config) web(flags map[string]*string) error {
 	return nil
 }
 
-// append system password and system servers to config.Systems
-func (config *Config) appendMissingData() error {
-	var secret internal.Secret
-	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
-		log.Fatal("Secret Values don't exist or are corrupted")
-		return errors.Wrap(err, " system  - Unmarshal")
-	}
-
-	for _, system := range config.Systems {
-
-		// decrypt password and add it to system config
-		if _, ok := secret.Name[system.Name]; !ok {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-			}).Error("Can't find password for system")
-			continue
-		}
-		pw, err := internal.PwDecrypt(secret.Name[system.Name], secret.Name["secretkey"])
-		if err != nil {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-			}).Error("Can't decrypt password for system")
-			continue
-		}
-		system.password = pw
-
-		// retrieve system servers and add them to config
-		c, err := connect(system, serverInfo{system.Server, system.Sysnr})
-		if err != nil {
-			continue
-		}
-		defer c.Close()
-
-		params := map[string]interface{}{}
-		r, err := c.Call("TH_SERVER_LIST", params)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-				"error":  err,
-			}).Error("Can't call fumo th_server_list")
-			continue
-		}
-
-		for _, v := range r["LIST"].([]interface{}) {
-			appl := v.(map[string]interface{})
-			info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
-			server := serverInfo{
-				name:  strings.TrimSpace(info[0]),
-				sysnr: strings.TrimSpace(info[2]),
-			}
-			system.servers = append(system.servers, server)
-
-		}
-	}
-	return nil
-}
-
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	metricsC := make(chan metricData, len(config.TableMetrics))
-	// go func(metrics []*metricInfo, systems []*systemInfo) {
+	mDataC := make(chan metricData, len(config.metrics))
 	var wg sync.WaitGroup
 
-	for _, metric := range config.TableMetrics {
+	for mPos := range config.metrics {
 
 		wg.Add(1)
-		go func(metric *metricInfo, systems systemsInfo) {
+		go func(mPos int) {
 			defer wg.Done()
-			metricsC <- metricData{
-				name:       metric.Name,
-				help:       metric.Help,
-				metricType: metric.MetricType,
-				stats:      systems.collectMetric(metric, config.timeout),
+			mDataC <- metricData{
+				name:       low(config.metrics[mPos].Name),
+				help:       config.metrics[mPos].Help,
+				metricType: low(config.metrics[mPos].MetricType),
+				stats:      config.collectSystemsMetric(mPos),
 			}
-		}(metric, config.Systems)
+		}(mPos)
 	}
 
 	go func() {
 		wg.Wait()
-		close(metricsC)
+		close(mDataC)
 	}()
 
-	var metricsData []metricData
-	for metric := range metricsC {
-		metricsData = append(metricsData, metric)
+	var mData []metricData
+	for metric := range mDataC {
+		mData = append(mData, metric)
 	}
 
-	return metricsData
+	return mData
 }
 
 // start collecting metric information for all tenants
-func (systems systemsInfo) collectMetric(metric *metricInfo, timeout uint64) []statData {
-	metricC := make(chan []statData, len(systems))
+func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
+	mRecordsC := make(chan []metricRecord, len(config.Systems))
+	var wg sync.WaitGroup
 
-	for _, system := range systems {
+	for sPos := range config.Systems {
+		wg.Add(1)
+		go func(sPos int) {
+			defer wg.Done()
+			mRecordsC <- config.collectServersMetric(mPos, sPos)
+		}(sPos)
+	}
 
-		go func(metric *metricInfo, system *systemInfo) {
+	go func() {
+		wg.Wait()
+		close(mRecordsC)
+	}()
 
-			metricC <- system.getMetricData(metric)
-		}(metric, system)
+	var sData []metricRecord
+	for mRecords := range mRecordsC {
+		sData = append(sData, mRecords...)
+	}
+	return sData
+}
+
+// get metric data for the system application servers
+func (config *Config) collectServersMetric(mPos, sPos int) []metricRecord {
+
+	servers := config.Systems[sPos].servers
+	if !config.metrics[mPos].AllServers {
+		// only one server is needed with option AllServers=false
+		servers = config.Systems[sPos].servers[:1]
+	}
+
+	srvCnt := len(servers)
+	mRecordsC := make(chan []metricRecord, srvCnt)
+
+	for srvPos := range servers {
+
+		go func(srvPos int) {
+			mRecordsC <- config.getRfcData(mPos, sPos, srvPos)
+		}(srvPos)
 	}
 
 	i := 0
-	var sData []statData
-	timeAfter := time.After(time.Duration(timeout) * time.Second)
+	var srvData []metricRecord
+	timeAfter := time.After(time.Duration(config.timeout) * time.Second)
 
 stopReading:
 	for {
 		select {
-		case mc := <-metricC:
+		case mc := <-mRecordsC:
 			if mc != nil {
-				sData = append(sData, mc...)
+				srvData = append(srvData, mc...)
 			}
 			i += 1
-			if len(systems) == i {
+			if srvCnt == i {
 				break stopReading
 			}
 		case <-timeAfter:
 			break stopReading
 		}
 	}
-	return sData
+	return srvData
 }
 
-// get metric data for all systems application servers
-func (system *systemInfo) getMetricData(metric *metricInfo) []statData {
-
-	resC := make(chan []statData)
-	go func(metric *metricInfo, system *systemInfo) {
-		var wg sync.WaitGroup
-
-		for _, server := range system.servers {
-
-			wg.Add(1)
-			go func(metric *metricInfo, system *systemInfo, server serverInfo) {
-				defer wg.Done()
-				resC <- getRfcData(metric, system, server)
-			}(metric, system, server)
-
-			// stop if fumo must be called only once
-			if !metric.AllServers {
-				break
-			}
-		}
-		wg.Wait()
-		close(resC)
-	}(metric, system)
-
-	var statData []statData
-	for v := range resC {
-		if v != nil {
-			statData = append(statData, v...)
-		}
-	}
-	return statData
-}
-
-type rfcData map[string]interface{}
-
-// get rfc data from sap system
-func getRfcData(metric *metricInfo, system *systemInfo, server serverInfo) []statData {
+// get data from sap system
+func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
 
 	// connect to system/server
-	c, err := connect(system, server)
+	c, err := connect(config.Systems[sPos], config.Systems[sPos].servers[srvPos])
 	if err != nil {
 		return nil
 	}
@@ -251,168 +225,102 @@ func getRfcData(metric *metricInfo, system *systemInfo, server serverInfo) []sta
 
 	// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 	// metric is not relevant for the tenant
-	if !subSliceInSlice(metric.TagFilter, system.Tags) {
+	if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
 		return nil
 	}
 
-	// call metrics function module
-	var res rfcData
-	res, err = c.Call(metric.FuMo, metric.Params)
+	// check if all param keys are uppercase otherwise the function call returns an error
+	for k, v := range config.metrics[mPos].Params {
+		upKey := up(k)
+		if !(upKey == k) {
+			config.metrics[mPos].Params[upKey] = v
+			delete(config.metrics[mPos].Params, k)
+		}
+	}
+	// call function module
+	rawData, err := c.Call(up(config.metrics[mPos].FunctionModule), config.metrics[mPos].Params)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"system": system.Name,
-			"server": server.name,
+			"system": config.Systems[sPos].Name,
+			"server": config.Systems[sPos].servers[srvPos].name,
 			"error":  err,
 		}).Error("Can't call function module")
 		return nil
 	}
 
-	return res.collectTableData(metric, system, server)
+	// return table- or field metric data
+	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], config.Systems[sPos].servers[srvPos].name)
 }
 
-// get table information - occurrences of specified table field values
-func (tableData rfcData) collectTableData(metric *metricInfo, system *systemInfo, server serverInfo) []statData {
-
-	var md []statData
+// retrieve table data
+func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+	var md []metricRecord
 	count := make(map[string]float64)
 
-	for _, res := range tableData[metric.Table].([]interface{}) {
+	for _, res := range rawData[up(tMetric.Table)].([]interface{}) {
 		line := res.(map[string]interface{})
 
-		if len(metric.RowFilter) == 0 || inFilter(line, metric.RowFilter) {
-			for field, values := range metric.RowCount {
+		if len(tMetric.RowFilter) == 0 || inFilter(line, tMetric.RowFilter) {
+			for field, values := range tMetric.RowCount {
 				for _, value := range values {
-					namePart := interface2String(value)
+					namePart := low(interface2String(value))
 					if "" == namePart {
 						log.WithFields(log.Fields{
-							"metric": metric.Name,
+							"value":  namePart,
 							"system": system.Name,
 						}).Error("Configfile RowCount: only string and int types are allowed")
 						continue
 					}
 
-					if strings.HasPrefix(strings.ToLower(interface2String(line[strings.ToUpper(field)])), strings.ToLower(namePart)) || strings.EqualFold("total", namePart) {
-						count[field+"_"+namePart]++
+					if strings.HasPrefix(low(interface2String(line[up(field)])), namePart) || "total" == namePart {
+						count[low(field)+"_"+namePart]++
 					}
 				}
 			}
 		}
 	}
 
-	for field, values := range metric.RowCount {
+	for field, values := range tMetric.RowCount {
 		for _, value := range values {
-			namePart := interface2String(value)
+			namePart := low(interface2String(value))
 
-			data := statData{
+			data := metricRecord{
 				labels:      []string{"system", "usage", "server", "count"},
-				labelValues: []string{strings.ToLower(system.Name), strings.ToLower(system.Usage), strings.ToLower(server.name), strings.ToLower(field + "_" + namePart)},
-				value:       count[field+"_"+namePart],
+				labelValues: []string{low(system.Name), low(system.Usage), low(srvName), low(field + "_" + namePart)},
+				value:       count[low(field)+"_"+namePart],
 			}
 			md = append(md, data)
 		}
 	}
-
 	return md
 }
 
-func inFilter(line map[string]interface{}, filter map[string][]interface{}) bool {
-	for field, values := range filter {
-		for _, value := range values {
-			if strings.EqualFold(interface2String(line[strings.ToUpper(field)]), interface2String(value)) {
-				return true
-			}
-		}
+// retrieve field data
+func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+
+	var fieldLabelValues []string
+	for _, label := range fMetric.FieldLabels {
+		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
 	}
-	return false
 
-}
+	var md []metricRecord
+	labels := append([]string{"system", "usage", "server"}, fMetric.FieldLabels...)
+	labelValues := append([]string{low(system.Name), low(system.Usage), low(srvName)}, fieldLabelValues...)
 
-// convert interface int values to string
-func interface2String(namePart interface{}) string {
-
-	switch val := namePart.(type) {
-	case string:
-		return val
-	case int64, int32, int16, int8, int, uint64, uint32, uint8, uint:
-		// return strconv.FormatInt(val, 10)
-		return fmt.Sprint(val)
-	default:
-		return ""
-	}
-}
-
-func newCollector(stats func() []metricData) *collector {
-	return &collector{
-		stats: stats,
-	}
-}
-
-// Describe implements prometheus.Collector.
-func (c *collector) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(c, ch)
-}
-
-// Collect implements prometheus.Collector.
-func (c *collector) Collect(ch chan<- prometheus.Metric) {
-	// Take a stats snapshot.  Must be concurrency safe.
-	stats := c.stats()
-
-	var valueType = map[string]prometheus.ValueType{
-		"gauge":   prometheus.GaugeValue,
-		"counter": prometheus.CounterValue,
-	}
-	for _, mi := range stats {
-		for _, v := range mi.stats {
-			m := prometheus.MustNewConstMetric(
-				prometheus.NewDesc(strings.ToLower(mi.name), mi.help, v.labels, nil),
-				valueType[strings.ToLower(mi.metricType)],
-				v.value,
-				v.labelValues...,
-			)
-			ch <- m
-		}
-	}
-}
-
-// connect to sap system
-func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
-	c, err := gorfc.ConnectionFromParams(
-		gorfc.ConnectionParameter{
-			Dest:   system.Name,
-			User:   system.User,
-			Passwd: system.password,
-			Client: system.Client,
-			Lang:   system.Lang,
-			// Lang:   "en",
-			Ashost: server.name,
-			Sysnr:  server.sysnr,
-			// Ashost: config.Systems[s].Server,
-			// Sysnr:  config.Systems[s].Sysnr,
-			// Saprouter: "/H/203.13.155.17/S/3299/W/xjkb3d/H/172.19.137.194/H/",
-		},
-	)
-	if err != nil {
+	if len(labels) != len(labelValues) {
 		log.WithFields(log.Fields{
 			"system": system.Name,
-			"server": server.name,
-			"error":  err,
-		}).Error("Can't connect to system with user/password")
-		return nil, err
+			"server": srvName,
+		}).Error("getRfcData: len(labels) != len(labelValues)")
+		return nil
+
 	}
 
-	return c, nil
-}
-
-// true if every item in sublice exists in slice
-func subSliceInSlice(subSlice []string, slice []string) bool {
-	for _, vs := range subSlice {
-		for _, v := range slice {
-			if strings.EqualFold(vs, v) {
-				goto nextCheck
-			}
-		}
-		return false
-	nextCheck:
+	data := metricRecord{
+		labels:      labels,
+		labelValues: labelValues,
+		value:       1,
 	}
-	return true
+	md = append(md, data)
+	return md
 }
