@@ -81,7 +81,7 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
 
 [[FieldMetrics]]
- Name = "sap_sta_pi_version"
+ Name = "sap_stapi_version"
  Help = "SAP ST-A/Pi version info"
  MetricType = "gauge"
  TagFilter = []
