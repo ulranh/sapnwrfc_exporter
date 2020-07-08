@@ -103,7 +103,7 @@ var (
 	errConfSystemMissing = errors.New("\nthe system info is missing.")
 	errConfMetricMissing = errors.New("\nthe metric info is missing.")
 	errConfSystem        = errors.New("\nat least one of the required system fields Name,Usage,Lang,Server,Sysnr,Client or User is empty.")
-	errConfMetric        = errors.New("\nat least one of the required metric fields Name,Help,MetricType is empty.")
+	errConfMetric        = errors.New("\nat least one of the required metric fields Name,Help,MetricType or FunctionModule is empty.")
 	errConfMetricType    = errors.New("\nat least one of the existing MetricType fields does not contain the allowed content counter or gauge.")
 )
 

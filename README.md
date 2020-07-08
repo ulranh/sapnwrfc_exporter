@@ -79,17 +79,6 @@ The file contains a Systems slice followed by a TableMetrics Slice:
   AllServers = true
   FunctionModule = "TH_SAPREL2"
   FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
-
-[[FieldMetrics]]
- Name = "sap_stapi_version"
- Help = "SAP ST-A/Pi version info"
- MetricType = "gauge"
- TagFilter = []
- FunctionModule = "ANST_OCS_GET_COMPONENT_STATE"
- FieldLabels = ["ev_comp_rel", "ev_comp_spp_level"]
- AllServers = false
- [FieldMetrics.Params]
-   IV_COMPONENT = "ST-A/PI"
 ```
 
 Below is a description of the system and metric struct fields:
