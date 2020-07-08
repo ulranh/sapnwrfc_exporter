@@ -12,12 +12,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// server information
 type serverInfo struct {
 	name  string
 	sysnr string
 }
 
-// system info
+// system information
 type systemInfo struct {
 	Name     string
 	Usage    string

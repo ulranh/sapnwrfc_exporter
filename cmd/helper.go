@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 	"github.com/sap/gorfc/gorfc"
 	log "github.com/sirupsen/logrus"
-	"github.com/ulranh/sapnwrfc_exporter/internal"
 )
 
 // establish connection to sap system
@@ -37,63 +34,6 @@ func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 	}
 
 	return c, nil
-}
-
-// add passwords and system servers to config.Systems
-func (config *Config) addSystemData() error {
-	var secret internal.Secret
-
-	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
-		log.Fatal("Secret Values don't exist or are corrupted")
-		return errors.Wrap(err, " system  - Unmarshal")
-	}
-
-	for _, system := range config.Systems {
-
-		// decrypt password and add it to system config
-		if _, ok := secret.Name[low(system.Name)]; !ok {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-			}).Error("Can't find password for system")
-			continue
-		}
-		pw, err := internal.PwDecrypt(secret.Name[low(system.Name)], secret.Name["secretkey"])
-		if err != nil {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-			}).Error("Can't decrypt password for system")
-			continue
-		}
-		system.password = pw
-
-		// retrieve system servers and add them to the system config
-		c, err := connect(system, serverInfo{system.Server, system.Sysnr})
-		if err != nil {
-			continue
-		}
-		defer c.Close()
-
-		params := map[string]interface{}{}
-		r, err := c.Call("TH_SERVER_LIST", params)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-				"error":  err,
-			}).Error("Can't call fumo th_server_list")
-			continue
-		}
-
-		for _, v := range r["LIST"].([]interface{}) {
-			appl := v.(map[string]interface{})
-			info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
-			system.servers = append(system.servers, serverInfo{
-				// !!!!! evtl up() nur fuer name -> testen
-				name:  strings.TrimSpace(info[0]),
-				sysnr: strings.TrimSpace(info[2]),
-			})
-		}
-	}
-	return nil
 }
 
 // convert interface int values to string
