@@ -32,7 +32,7 @@ A SAP user is necessary for every SAP system with read access for all affected r
 #### Configfile
 The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
 
-The file contains a Systems- followed by a TableMetrics and/or FieldMetrics-slice:
+The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- slice:
 
 ```
 [[Systems]]
