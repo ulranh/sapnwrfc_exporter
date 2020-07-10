@@ -32,7 +32,7 @@ A SAP user is necessary for every SAP system with read access for all affected r
 #### Configfile
 The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
 
-The file contains a Systems slice followed by a TableMetrics Slice:
+The file contains a Systems- followed by a TableMetrics and/or FieldMetrics-slice:
 
 ```
 [[Systems]]
@@ -148,7 +148,7 @@ $ docker run -d --name=sapnwrfc_exporter --restart=always -p 9663:9663 -v /home/
 ```
 
 #### Kubernetes
-Due to the license restrictions it is not possible to publish a docker image tah includes the sapnwrfc library. But all SAP customers can create their own images and use them. An example config can be found in the examples folder. First of all create a SAP namespace. Then apply the created configfile as configmap and start the deployment:
+Due to the license restrictions it is not possible to publish a docker image that includes the sapnwrfc library. But all SAP customers can create their own images and use them. An example config can be found in the examples folder. First of all create a SAP namespace. Then apply the created configfile as configmap and start the deployment:
 ```
 $ kubectl apply -f sap-namespace.yaml 
 $ kubectl create configmap sapnwrfc-config -n sap --from-file ./sapnwrfc_exporter.toml -o yaml
