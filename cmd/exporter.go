@@ -161,11 +161,11 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
 			// !!!!!!!!!!!!!!!! kann eventuell hier
-			// if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-			mRecordsC <- config.collectServersMetric(mPos, sPos, config.getSrvInfo(mPos, sPos))
-			// } else {
-			// mRecords <- nil
-			// }
+			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+				mRecordsC <- config.collectServersMetric(mPos, sPos, config.getSrvInfo(mPos, sPos))
+			} else {
+				mRecordsC <- nil
+			}
 		}(sPos)
 	}
 
@@ -235,9 +235,9 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 	// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 	// metric is not relevant for the tenant
 	// !!!!!!!!!!!!!!!! kann eventuell früher behandelt werden
-	if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-		return nil
-	}
+	// if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+	// 	return nil
+	// }
 
 	// check if all configfile param keys are uppercase otherwise the function call returns an error
 	for k, v := range config.metrics[mPos].Params {
@@ -338,10 +338,10 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *syst
 	return md
 }
 
+// retrieve system servers
 func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	var servers []serverInfo
 
-	// retrieve system servers and add them to the system config
 	c, err := connect(config.Systems[sPos])
 	if err != nil {
 		return nil
@@ -372,10 +372,9 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 			}).Error("error from getServerConnections")
 			continue
 		}
-		// servers = append(servers, server{strings.ToUpper(appl["NAME"].(string)), srv})
 		servers = append(servers, serverInfo{info[0], srv})
 
-		// if all servers not needed for function module -> return
+		// if only one server is needed for metric -> return
 		if !config.metrics[mPos].AllServers {
 			return servers
 		}
