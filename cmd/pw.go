@@ -91,7 +91,7 @@ func (config *Config) newSecret(secret internal.Secret, systems *string, pw []by
 
 		// connection test
 		sys.password = string(pw)
-		_, err := connect(sys, serverInfo{sys.Server, sys.Sysnr})
+		_, err := connect(sys)
 		if err != nil {
 			continue
 		}

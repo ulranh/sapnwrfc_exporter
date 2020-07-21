@@ -9,7 +9,7 @@ import (
 )
 
 // establish connection to sap system
-func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
+func connect(system *systemInfo) (*gorfc.Connection, error) {
 	c, err := gorfc.ConnectionFromParams(
 		gorfc.ConnectionParameters{
 			"Dest":   system.Name,
@@ -17,8 +17,8 @@ func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 			"Passwd": system.password,
 			"Client": system.Client,
 			"Lang":   system.Lang,
-			"Ashost": server.name,
-			"Sysnr":  server.sysnr,
+			"Ashost": system.Server,
+			"Sysnr":  system.Sysnr,
 			// Ashost: config.Systems[s].Server,
 			// Sysnr:  config.Systems[s].Sysnr,
 			// Saprouter: "/H/203.13.155.17/S/3299/W/xjkb3d/H/172.19.137.194/H/",
@@ -27,7 +27,7 @@ func connect(system *systemInfo, server serverInfo) (*gorfc.Connection, error) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"system": system.Name,
-			"server": server.name,
+			"server": system.Server,
 			"error":  err,
 		}).Error("Can't connect to system with user/password")
 		return nil, err

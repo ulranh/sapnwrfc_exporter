@@ -10,25 +10,26 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
+	"github.com/sap/gorfc/gorfc"
 )
 
 // server information
 type serverInfo struct {
-	name  string
-	sysnr string
+	name string
+	conn *gorfc.Connection
 }
 
 // system information
 type systemInfo struct {
-	Name     string
-	Usage    string
-	Tags     []string
-	User     string
-	Lang     string
-	Client   string
-	Server   string
-	Sysnr    string
-	servers  []serverInfo
+	Name   string
+	Usage  string
+	Tags   []string
+	User   string
+	Lang   string
+	Client string
+	Server string
+	Sysnr  string
+	// servers  []serverInfo
 	password string
 }
 
