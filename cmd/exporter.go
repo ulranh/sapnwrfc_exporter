@@ -79,7 +79,7 @@ func (config *Config) web(flags map[string]*string) error {
 		exit(fmt.Sprint(" timeout flag has wrong type", err))
 	}
 	// add missing system data
-	err = config.addSystemData()
+	err = config.addPasswordData()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -266,7 +266,7 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 }
 
 // retrieve table data
-func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+func (tMetric tableInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 	var md []metricRecord
 	count := make(map[string]float64)
 
@@ -309,7 +309,7 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *syst
 }
 
 // retrieve field data
-func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 
 	var fieldLabelValues []string
 	for _, label := range fMetric.FieldLabels {
@@ -342,7 +342,7 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *syst
 func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	var servers []serverInfo
 
-	c, err := connect(config.Systems[sPos])
+	c, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
 	if err != nil {
 		return nil
 	}
@@ -364,7 +364,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		config.Systems[sPos].Server = strings.TrimSpace(info[0])
 		config.Systems[sPos].Sysnr = strings.TrimSpace(info[2])
 
-		srv, err := connect(config.Systems[sPos])
+		srv, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
 		if err != nil {
 			log.WithFields(log.Fields{
 				"server": info[0],
@@ -383,7 +383,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 }
 
 // add passwords and system servers to config.Systems
-func (config *Config) addSystemData() error {
+func (config *Config) addPasswordData() error {
 	var secret internal.Secret
 
 	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
@@ -391,6 +391,8 @@ func (config *Config) addSystemData() error {
 		return errors.Wrap(err, " system  - Unmarshal")
 	}
 
+	// var passwords []string
+	passwords := make(map[string]string)
 	for _, system := range config.Systems {
 
 		// decrypt password and add it to system config
@@ -407,7 +409,8 @@ func (config *Config) addSystemData() error {
 			}).Error("Can't decrypt password for system")
 			continue
 		}
-		system.password = pw
+		// passwords = append(passwords, pw)
+		passwords[system.Name] = pw
 
 		// retrieve system servers and add them to the system config
 		// c, err := connect(system, serverInfo{system.Server, system.Sysnr})
@@ -436,5 +439,6 @@ func (config *Config) addSystemData() error {
 		// })
 		// }
 	}
+	config.passwords = passwords
 	return nil
 }

@@ -9,12 +9,12 @@ import (
 )
 
 // establish connection to sap system
-func connect(system *systemInfo) (*gorfc.Connection, error) {
+func connect(system systemInfo, password string) (*gorfc.Connection, error) {
 	c, err := gorfc.ConnectionFromParams(
 		gorfc.ConnectionParameters{
 			"Dest":   system.Name,
 			"User":   system.User,
-			"Passwd": system.password,
+			"Passwd": password,
 			"Client": system.Client,
 			"Lang":   system.Lang,
 			"Ashost": system.Server,

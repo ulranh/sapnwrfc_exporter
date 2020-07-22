@@ -30,8 +30,12 @@ type systemInfo struct {
 	Server string
 	Sysnr  string
 	// servers  []serverInfo
-	password string
+	// password *string
 }
+
+// type pwInfo struct {
+// 	pw string
+// }
 
 // standard metric info
 type metricInfo struct {
@@ -58,7 +62,7 @@ type fieldInfo struct {
 
 // interface for different handling of table- and field metrics
 type dataReceiver interface {
-	metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord
+	metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord
 }
 
 type tableMetric struct {
@@ -79,10 +83,11 @@ type entireMetric struct {
 // config information for the whole process
 type Config struct {
 	Secret       []byte
-	Systems      []*systemInfo  // system info from toml file
+	Systems      []systemInfo   // system info from toml file
 	TableMetrics []tableMetric  // table metric info from toml file
 	FieldMetrics []fieldMetric  // field metric info from toml file
 	metrics      []entireMetric // table- and field-info condensed
+	passwords    map[string]string
 	timeout      uint64
 }
 

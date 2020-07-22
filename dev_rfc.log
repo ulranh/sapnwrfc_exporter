@@ -80,3 +80,67 @@ NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 
 	The UUID daemon (uuidd) is not active.
 Please ask your system administrator to activate uuidd according to SAP note 1391070.
 
+
+**** Log file opened at 2020-07-22 09:06:30.895489 UTC+02:00 (GMT), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 09:04:28
+ CPIC library: 753.2019.10.14 version 3, NI library: 40, Kernel Release: 753 Patch Level 525
+ Current working directory: /home/ulli/lang/go/src/github.com/ulranh/sapnwrfc_exporter, Program: sapnwrfc_exporter
+ Hardware: AMD/Intel x86_64 with Linux x86_64, Operating_system: Linux 5.6.14-arch1-1
+ Hostname: paul, IP address: 172.20.100.83, IPv6 address: fe80::2aff:42d9:7ff3:f0ae
+
+2020-07-22 09:06:30.895619 [139700557256448] >> Error entry
+	[Handle: 139699918219456	ConvID: 32834842	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:06:30.895843 [139700548601600] >> Error entry
+	[Handle: 139699985328320	ConvID: 32835842	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:06:30.896346 [139700424087296] >> Error entry
+	[Handle: 139699515565904	ConvID: 32836842	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:06:30.896939 [139700440872704] >> Error entry
+	[Handle: 139699649783632	ConvID: 32833842	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+
+**** Log file opened at 2020-07-22 09:44:52.639919 UTC+02:00 (GMT), Encoding UTF-8
+NW RFC Library: SDK variant, Release 750 Patch Level 6, Compiled on Feb  6 2020 09:04:28
+ CPIC library: 753.2019.10.14 version 3, NI library: 40, Kernel Release: 753 Patch Level 525
+ Current working directory: /home/ulli/lang/go/src/github.com/ulranh/sapnwrfc_exporter, Program: sapnwrfc_exporter
+ Hardware: AMD/Intel x86_64 with Linux x86_64, Operating_system: Linux 5.6.14-arch1-1
+ Hostname: paul, IP address: 172.20.100.83, IPv6 address: fe80::2aff:42d9:7ff3:f0ae
+
+2020-07-22 09:44:52.639957 [139759889331968] >> Error entry
+	[Handle: 139759510895680	ConvID: 21499603	Target: euleq01.lenze.com	SysID: Q01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.640014 [139760582047680] >> Error entry
+	[Handle: 45741936	ConvID: 21496603	Target: euleq01.lenze.com	SysID: Q01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.640082 [139759506683648] >> Error entry
+	[Handle: 139759309564096	ConvID: 21498603	Target: euleq01.lenze.com	SysID: Q01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.640135 [139759498290944] >> Error entry
+	[Handle: 139759175346368	ConvID: 21497603	Target: euleq01.lenze.com	SysID: Q01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.641794 [139759861102336] >> Error entry
+	[Handle: 139759376672592	ConvID: 35058603	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.642362 [139759481505536] >> Error entry
+	[Handle: 139759041128272	ConvID: 35057603	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.642691 [139759897724672] >> Error entry
+	[Handle: 139759712217232	ConvID: 35060603	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.644378 [139759473112832] >> Error entry
+	[Handle: 139759108237504	ConvID: 35059603	Target: eulepa.lenze.com	SysID: P01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.683545 [139759464720128] >> Error entry
+	[Handle: 139758906910544	ConvID: 16213603	Target: eulet01.lenze.com	SysID: T01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.684130 [139759489898240] >> Error entry
+	[Handle: 139759242454864	ConvID: 16212603	Target: eulet01.lenze.com	SysID: T01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.684387 [139758906898176] >> Error entry
+	[Handle: 139758772692704	ConvID: 16215603	Target: eulet01.lenze.com	SysID: T01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.
+2020-07-22 09:44:52.690958 [139759456327424] >> Error entry
+	[Handle: 139758974019040	ConvID: 16214603	Target: eulet01.lenze.com	SysID: T01	SysNr: 01	User: sapaut	Mandant: 100	Language: E	Codepage: 4103]
+	RfcSystemException: Key: CALL_FUNCTION_SIGNON_INCOMPL, Code: RFC_ABAP_RUNTIME_FAILURE, Message: Logon data incomplete.

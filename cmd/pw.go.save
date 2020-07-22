@@ -80,8 +80,8 @@ func (config *Config) newSecret(secret internal.Secret, systems *string, pw []by
 	for _, sys := range strings.Split(*systems, ",") {
 		sysMap[low(sys)] = false
 	}
-	for sPos := range config.Systems {
-		sysName := low(config.Systems[sPos].Name)
+	for _, sys := range config.Systems {
+		sysName := low(sys.Name)
 
 		// check if pw system exists in configfile system slice
 		if _, ok := sysMap[sysName]; !ok {
@@ -90,8 +90,8 @@ func (config *Config) newSecret(secret internal.Secret, systems *string, pw []by
 		sysMap[sysName] = true
 
 		// connection test
-		config.passwords[config.Systems[sPos].Name] = string(pw)
-		_, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
+		sys.password = string(pw)
+		_, err := connect(sys)
 		if err != nil {
 			continue
 		}
