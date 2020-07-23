@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sap/gorfc/gorfc"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulranh/sapnwrfc_exporter/internal"
 )
@@ -352,6 +353,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
 	}
 
+	var servers []serverInfo
 	params := map[string]interface{}{}
 	r, err := c.Call("TH_SERVER_LIST", params)
 	if err != nil {
@@ -366,20 +368,20 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	// -> the standard connection has to be closed here
 	c.Close()
 
-	srvConnC := make(chan serverInfo, len(r["LIST"].([]interface{})))
+	srvConnC := make(chan *gorfc.Connection, len(r["LIST"].([]interface{})))
 	var wg sync.WaitGroup
 	for _, v := range r["LIST"].([]interface{}) {
 		wg.Add(1)
 
-		go func(v interface{}) {
-			defer wg.Done()
-
+		go func(v int) {
 			appl := v.(map[string]interface{})
 			info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
 
 			sys := config.Systems[sPos]
 			sys.Server = strings.TrimSpace(info[0])
 			sys.Sysnr = strings.TrimSpace(info[2])
+			// config.Systems[sPos].Server = strings.TrimSpace(info[0])
+			// config.Systems[sPos].Sysnr = strings.TrimSpace(info[2])
 
 			srv, err := connect(sys, config.passwords[config.Systems[sPos].Name])
 			if err != nil {
@@ -387,23 +389,13 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 					"server": info[0],
 					"error":  err,
 				}).Error("error from getServerConnections")
-			} else {
-				srvConnC <- serverInfo{info[0], srv}
+				continue
 			}
 		}(v)
 
+		servers = append(servers, serverInfo{info[0], srv})
+
 	}
-
-	go func() {
-		wg.Wait()
-		close(srvConnC)
-	}()
-
-	var servers []serverInfo
-	for server := range srvConnC {
-		servers = append(servers, server)
-	}
-
 	// return connections for all servers. they will be closed in getRfcData.
 	return servers
 }

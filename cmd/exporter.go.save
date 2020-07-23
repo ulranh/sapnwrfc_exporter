@@ -79,7 +79,7 @@ func (config *Config) web(flags map[string]*string) error {
 		exit(fmt.Sprint(" timeout flag has wrong type", err))
 	}
 	// add missing system data
-	err = config.addPasswordData()
+	config.Systems, err = config.addPasswordData()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -340,14 +340,19 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 
 // retrieve system servers
 func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
-	var servers []serverInfo
 
 	c, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
 	if err != nil {
 		return nil
 	}
-	defer c.Close()
 
+	// if only one server is needed for metric
+	// -> return the standard connection. it will be closed in getRfcData.
+	if !config.metrics[mPos].AllServers {
+		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+	}
+
+	var servers []serverInfo
 	params := map[string]interface{}{}
 	r, err := c.Call("TH_SERVER_LIST", params)
 	if err != nil {
@@ -357,6 +362,10 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		}).Error("Can't call fumo th_server_list")
 		return nil
 	}
+
+	// if all servers are needed, they get their own connection below
+	// -> the standard connection has to be closed here
+	c.Close()
 
 	for _, v := range r["LIST"].([]interface{}) {
 		appl := v.(map[string]interface{})
@@ -378,25 +387,23 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		}
 		servers = append(servers, serverInfo{info[0], srv})
 
-		// if only one server is needed for metric -> return
-		if !config.metrics[mPos].AllServers {
-			return servers
-		}
 	}
+	// return connections for all servers. they will be closed in getRfcData.
 	return servers
 }
 
 // add passwords and system servers to config.Systems
-func (config *Config) addPasswordData() error {
+func (config *Config) addPasswordData() ([]systemInfo, error) {
 	var secret internal.Secret
 
 	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
 		log.Fatal("Secret Values don't exist or are corrupted")
-		return errors.Wrap(err, " system  - Unmarshal")
+		return nil, errors.Wrap(err, " system  - Unmarshal")
 	}
 
 	// var passwords []string
 	// passwords := make(map[string]string)
+	var systemsOk []systemInfo
 	for _, system := range config.Systems {
 
 		// decrypt password and add it to system config
@@ -406,6 +413,7 @@ func (config *Config) addPasswordData() error {
 			}).Error("Can't find password for system")
 			continue
 		}
+		systemsOk = append(systemsOk, system)
 		pw, err := internal.PwDecrypt(secret.Name[low(system.Name)], secret.Name["secretkey"])
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -444,5 +452,5 @@ func (config *Config) addPasswordData() error {
 		// }
 	}
 	// config.passwords = passwords
-	return nil
+	return systemsOk, nil
 }
