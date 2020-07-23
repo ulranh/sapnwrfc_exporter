@@ -348,9 +348,9 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 
 	// if only one server is needed for metric
 	// -> return the standard connection. it will be closed in getRfcData.
-	if !config.metrics[mPos].AllServers {
-		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
-	}
+	// if !config.metrics[mPos].AllServers {
+	// 	return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+	// }
 
 	params := map[string]interface{}{}
 	r, err := c.Call("TH_SERVER_LIST", params)
@@ -362,11 +362,20 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		return nil
 	}
 
-	// if all servers are needed, they get their own connection below
-	// -> the standard connection has to be closed here
+	srvCnt := len(r["LIST"].([]interface{}))
+
+	// if only one server is needed for the metric
+	// or if all servers are needed but only one server exists
+	// -> return the standard connection. it will be closed in getRfcData.
+	if !config.metrics[mPos].AllServers || 1 == srvCnt {
+		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+	}
+
+	// if more servers exists, they get their own connection below
+	// -> the standard connection has to be closed now
 	c.Close()
 
-	srvConnC := make(chan serverInfo, len(r["LIST"].([]interface{})))
+	srvConnC := make(chan serverInfo, srvCnt)
 	var wg sync.WaitGroup
 	for _, v := range r["LIST"].([]interface{}) {
 		wg.Add(1)
@@ -391,7 +400,6 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 				srvConnC <- serverInfo{info[0], srv}
 			}
 		}(v)
-
 	}
 
 	go func() {
