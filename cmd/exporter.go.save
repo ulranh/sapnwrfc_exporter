@@ -79,7 +79,7 @@ func (config *Config) web(flags map[string]*string) error {
 		exit(fmt.Sprint(" timeout flag has wrong type", err))
 	}
 	// add missing system data
-	err = config.addSystemData()
+	err = config.addPasswordData()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -158,7 +158,14 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 		wg.Add(1)
 		go func(sPos int) {
 			defer wg.Done()
-			mRecordsC <- config.collectServersMetric(mPos, sPos)
+			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
+			// metric is not relevant for the tenant
+			// !!!!!!!!!!!!!!!! kann eventuell hier
+			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+				mRecordsC <- config.collectServersMetric(mPos, sPos, config.getSrvInfo(mPos, sPos))
+			} else {
+				mRecordsC <- nil
+			}
 		}(sPos)
 	}
 
@@ -175,22 +182,23 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 }
 
 // get metric data for the system application servers
-func (config *Config) collectServersMetric(mPos, sPos int) []metricRecord {
+func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo) []metricRecord {
 
-	servers := config.Systems[sPos].servers
-	if !config.metrics[mPos].AllServers {
-		// only one server is needed with option AllServers=false
-		servers = config.Systems[sPos].servers[:1]
-	}
+	// !!!!!!!!!!!!!!!!!!!!!
+	// servers := config.Systems[sPos].servers
+	// if !config.metrics[mPos].AllServers {
+	// 	// only one server is needed with option AllServers=false
+	// 	servers = config.Systems[sPos].servers[:1]
+	// }
 
 	srvCnt := len(servers)
 	mRecordsC := make(chan []metricRecord, srvCnt)
 
-	for srvPos := range servers {
+	for _, srv := range servers {
 
-		go func(srvPos int) {
-			mRecordsC <- config.getRfcData(mPos, sPos, srvPos)
-		}(srvPos)
+		go func(srv serverInfo) {
+			mRecordsC <- config.getRfcData(mPos, sPos, srv)
+		}(srv)
 	}
 
 	i := 0
@@ -216,22 +224,22 @@ stopReading:
 }
 
 // get data from sap system
-func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
+func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord {
 
 	// connect to system/server
-	c, err := connect(config.Systems[sPos], config.Systems[sPos].servers[srvPos])
-	if err != nil {
-		return nil
-	}
-	defer c.Close()
+	// c, err := connect(config.Systems[sPos], config.Systems[sPos].servers[srvPos])
+	// if err != nil {
+	// 	return nil
+	// }
 
 	// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 	// metric is not relevant for the tenant
-	if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-		return nil
-	}
+	// !!!!!!!!!!!!!!!! kann eventuell früher behandelt werden
+	// if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+	// 	return nil
+	// }
 
-	// check if all param keys are uppercase otherwise the function call returns an error
+	// check if all configfile param keys are uppercase otherwise the function call returns an error
 	for k, v := range config.metrics[mPos].Params {
 		upKey := up(k)
 		if !(upKey == k) {
@@ -240,22 +248,25 @@ func (config *Config) getRfcData(mPos, sPos, srvPos int) []metricRecord {
 		}
 	}
 	// call function module
-	rawData, err := c.Call(up(config.metrics[mPos].FunctionModule), config.metrics[mPos].Params)
+	rawData, err := srv.conn.Call(up(config.metrics[mPos].FunctionModule), config.metrics[mPos].Params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"system": config.Systems[sPos].Name,
-			"server": config.Systems[sPos].servers[srvPos].name,
+			"server": srv.name,
 			"error":  err,
 		}).Error("Can't call function module")
 		return nil
 	}
 
+	// close connection
+	srv.conn.Close()
+
 	// return table- or field metric data
-	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], config.Systems[sPos].servers[srvPos].name)
+	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], srv.name)
 }
 
 // retrieve table data
-func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+func (tMetric tableInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 	var md []metricRecord
 	count := make(map[string]float64)
 
@@ -298,7 +309,7 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system *syst
 }
 
 // retrieve field data
-func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *systemInfo, srvName string) []metricRecord {
+func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 
 	var fieldLabelValues []string
 	for _, label := range fMetric.FieldLabels {
@@ -327,8 +338,56 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system *syst
 	return md
 }
 
+// retrieve system servers
+func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
+	var servers []serverInfo
+
+	c, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+
+	params := map[string]interface{}{}
+	r, err := c.Call("TH_SERVER_LIST", params)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"system": config.Systems[sPos].Name,
+			"error":  err,
+		}).Error("Can't call fumo th_server_list")
+		return nil
+	}
+
+	for _, v := range r["LIST"].([]interface{}) {
+		appl := v.(map[string]interface{})
+		info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
+
+		sys := config.Systems[sPos]
+		sys.Server = strings.TrimSpace(info[0])
+		sys.Sysnr = strings.TrimSpace(info[2])
+		// config.Systems[sPos].Server = strings.TrimSpace(info[0])
+		// config.Systems[sPos].Sysnr = strings.TrimSpace(info[2])
+
+		srv, err := connect(sys, config.passwords[config.Systems[sPos].Name])
+		if err != nil {
+			log.WithFields(log.Fields{
+				"server": info[0],
+				"error":  err,
+			}).Error("error from getServerConnections")
+			continue
+		}
+		servers = append(servers, serverInfo{info[0], srv})
+
+		// if only one server is needed for metric -> return
+		if !config.metrics[mPos].AllServers {
+			return servers
+		}
+	}
+	return servers
+}
+
 // add passwords and system servers to config.Systems
-func (config *Config) addSystemData() error {
+func (config *Config) addPasswordData() error {
 	var secret internal.Secret
 
 	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
@@ -336,6 +395,8 @@ func (config *Config) addSystemData() error {
 		return errors.Wrap(err, " system  - Unmarshal")
 	}
 
+	// var passwords []string
+	// passwords := make(map[string]string)
 	for _, system := range config.Systems {
 
 		// decrypt password and add it to system config
@@ -352,34 +413,36 @@ func (config *Config) addSystemData() error {
 			}).Error("Can't decrypt password for system")
 			continue
 		}
-		system.password = pw
+		// passwords = append(passwords, pw)
+		config.passwords[system.Name] = pw
 
 		// retrieve system servers and add them to the system config
-		c, err := connect(system, serverInfo{system.Server, system.Sysnr})
-		if err != nil {
-			continue
-		}
-		defer c.Close()
+		// c, err := connect(system, serverInfo{system.Server, system.Sysnr})
+		// if err != nil {
+		// 	continue
+		// }
+		// defer c.Close()
 
-		params := map[string]interface{}{}
-		r, err := c.Call("TH_SERVER_LIST", params)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"system": system.Name,
-				"error":  err,
-			}).Error("Can't call fumo th_server_list")
-			continue
-		}
+		// params := map[string]interface{}{}
+		// r, err := c.Call("TH_SERVER_LIST", params)
+		// if err != nil {
+		// 	log.WithFields(log.Fields{
+		// 		"system": system.Name,
+		// 		"error":  err,
+		// 	}).Error("Can't call fumo th_server_list")
+		// 	continue
+		// }
 
-		for _, v := range r["LIST"].([]interface{}) {
-			appl := v.(map[string]interface{})
-			info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
-			system.servers = append(system.servers, serverInfo{
-				// !!!!! evtl up() nur fuer name -> testen
-				name:  strings.TrimSpace(info[0]),
-				sysnr: strings.TrimSpace(info[2]),
-			})
-		}
+		// for _, v := range r["LIST"].([]interface{}) {
+		// 	appl := v.(map[string]interface{})
+		// 	info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
+		// 	system.servers = append(system.servers, serverInfo{
+		// 		// !!!!! evtl up() nur fuer name -> testen
+		// name:  strings.TrimSpace(info[0]),
+		// sysnr: strings.TrimSpace(info[2]),
+		// })
+		// }
 	}
+	// config.passwords = passwords
 	return nil
 }

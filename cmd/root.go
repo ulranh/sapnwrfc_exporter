@@ -164,6 +164,7 @@ func Root() {
 	}
 
 	// decode config file
+	passwords := make(map[string]string)
 	var config Config
 	if _, err := toml.DecodeFile(*flags["config"], &config); err != nil {
 		exit(fmt.Sprint("Problem with configfile decoding: ", err))
@@ -181,6 +182,9 @@ func Root() {
 	if err = config.parseConfigInfo(command); err != nil {
 		exit(fmt.Sprint("Problem with configfile content: ", err))
 	}
+
+	// add password map to config
+	config.passwords = passwords
 
 	// run cmd
 	var cmdFunc = map[string]func(map[string]*string) error{

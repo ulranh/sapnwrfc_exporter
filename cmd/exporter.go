@@ -340,14 +340,23 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 
 // retrieve system servers
 func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
-	var servers []serverInfo
 
 	c, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
 	if err != nil {
 		return nil
 	}
-	defer c.Close()
 
+	// if only one server is needed for metric
+	// -> return the standard connection. it will be closed in getRfcData.
+	if !config.metrics[mPos].AllServers {
+		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+	}
+
+	// if all servers are needed, they get their own connection below
+	// -> the standard connection has to be closed here
+	c.Close()
+
+	var servers []serverInfo
 	params := map[string]interface{}{}
 	r, err := c.Call("TH_SERVER_LIST", params)
 	if err != nil {
@@ -361,10 +370,14 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	for _, v := range r["LIST"].([]interface{}) {
 		appl := v.(map[string]interface{})
 		info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
-		config.Systems[sPos].Server = strings.TrimSpace(info[0])
-		config.Systems[sPos].Sysnr = strings.TrimSpace(info[2])
 
-		srv, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
+		sys := config.Systems[sPos]
+		sys.Server = strings.TrimSpace(info[0])
+		sys.Sysnr = strings.TrimSpace(info[2])
+		// config.Systems[sPos].Server = strings.TrimSpace(info[0])
+		// config.Systems[sPos].Sysnr = strings.TrimSpace(info[2])
+
+		srv, err := connect(sys, config.passwords[config.Systems[sPos].Name])
 		if err != nil {
 			log.WithFields(log.Fields{
 				"server": info[0],
@@ -374,11 +387,8 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		}
 		servers = append(servers, serverInfo{info[0], srv})
 
-		// if only one server is needed for metric -> return
-		if !config.metrics[mPos].AllServers {
-			return servers
-		}
 	}
+	// return connections for all servers. they will be closed in getRfcData.
 	return servers
 }
 
@@ -392,7 +402,7 @@ func (config *Config) addPasswordData() error {
 	}
 
 	// var passwords []string
-	passwords := make(map[string]string)
+	// passwords := make(map[string]string)
 	for _, system := range config.Systems {
 
 		// decrypt password and add it to system config
@@ -410,7 +420,7 @@ func (config *Config) addPasswordData() error {
 			continue
 		}
 		// passwords = append(passwords, pw)
-		passwords[system.Name] = pw
+		config.passwords[system.Name] = pw
 
 		// retrieve system servers and add them to the system config
 		// c, err := connect(system, serverInfo{system.Server, system.Sysnr})
@@ -439,6 +449,6 @@ func (config *Config) addPasswordData() error {
 		// })
 		// }
 	}
-	config.passwords = passwords
+	// config.passwords = passwords
 	return nil
 }
