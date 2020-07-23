@@ -33,10 +33,6 @@ type systemInfo struct {
 	// password *string
 }
 
-// type pwInfo struct {
-// 	pw string
-// }
-
 // standard metric info
 type metricInfo struct {
 	Name           string
