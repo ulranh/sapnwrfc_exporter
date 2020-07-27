@@ -17,7 +17,7 @@ CGO_CFLAGS_ALLOW="^.*"
 ```
 
 ## Installation
-The exporter can then be built with:
+To build the exporter you need the [Go](https://golang.org/) programming language. It can then be built with:
 
 ```
 $ git clone git@github.com:ulranh/sapnwrfc_exporter.git
