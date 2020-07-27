@@ -325,6 +325,10 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 
 	c, err := connect(config.Systems[sPos], config.passwords[config.Systems[sPos].Name])
 	if err != nil {
+		log.WithFields(log.Fields{
+			"system": config.Systems[sPos].Name,
+			"error":  err,
+		}).Error("No connection to sap system possible")
 		return nil
 	}
 
