@@ -161,12 +161,14 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
-			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-				srv := config.getSrvInfo(mPos, sPos)
-				if srv != nil {
-					// collect only, if server(s) can be reached
-					mRecordsC <- config.collectServersMetric(mPos, sPos, srv)
-				}
+			if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+				return
+			}
+
+			srv := config.getSrvInfo(mPos, sPos)
+			if srv != nil {
+				// collect only, if server(s) can be reached
+				mRecordsC <- config.collectServersMetric(mPos, sPos, srv)
 			}
 		}(sPos)
 	}
