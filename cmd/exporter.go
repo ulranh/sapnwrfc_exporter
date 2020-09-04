@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -119,8 +120,8 @@ func (config *Config) web(flags map[string]*string) error {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	mDataC := make(chan metricData, len(config.metrics))
 	var wg sync.WaitGroup
+	mDataC := make(chan metricData, len(config.metrics))
 
 	for mPos := range config.metrics {
 
@@ -151,36 +152,43 @@ func (config *Config) collectMetrics() []metricData {
 
 // start collecting metric information for all tenants
 func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
-	mRecordsC := make(chan []metricRecord, len(config.Systems))
-	var wg sync.WaitGroup
+	sysCnt := len(config.Systems)
+	mRecordsC := make(chan []metricRecord, sysCnt)
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
+	defer cancel()
 
 	for sPos := range config.Systems {
-		wg.Add(1)
 		go func(sPos int) {
-			defer wg.Done()
 
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
-			if !subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-				return
-			}
-
-			srv := config.getSrvInfo(mPos, sPos)
-			if srv != nil {
-				// collect only, if server(s) can be reached
-				mRecordsC <- config.collectServersMetric(mPos, sPos, srv)
+			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+				srv := config.getSrvInfo(mPos, sPos)
+				if srv != nil {
+					// collect only, if server(s) can be reached
+					mRecordsC <- config.collectServersMetric(mPos, sPos, srv)
+				}
+			} else {
+				mRecordsC <- nil
 			}
 		}(sPos)
 	}
 
-	go func() {
-		wg.Wait()
-		close(mRecordsC)
-	}()
-
 	var sData []metricRecord
-	for mRecords := range mRecordsC {
-		sData = append(sData, mRecords...)
+	for i := 0; i < sysCnt; i++ {
+		select {
+		case mc := <-mRecordsC:
+
+			// fmt.Println("OKE", mc)
+			if mc != nil {
+				sData = append(sData, mc...)
+			}
+		case <-ctx.Done():
+
+			// fmt.Println("TIMEOUT!")
+			return sData
+		}
 	}
 	return sData
 }
@@ -188,40 +196,37 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 // get metric data for the system application servers
 func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo) []metricRecord {
 
-	srvCnt := len(servers)
-	mRecordsC := make(chan []metricRecord, srvCnt)
+	var wg sync.WaitGroup
+	mRecordsC := make(chan []metricRecord, len(servers))
 
 	for _, srv := range servers {
 
+		wg.Add(1)
 		go func(srv serverInfo) {
+			defer wg.Done()
 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
 		}(srv)
 	}
 
-	i := 0
-	var srvData []metricRecord
-	timeAfter := time.After(time.Duration(config.timeout) * time.Second)
+	go func() {
+		wg.Wait()
+		close(mRecordsC)
+	}()
 
-stopReading:
-	for {
-		select {
-		case mc := <-mRecordsC:
-			if mc != nil {
-				srvData = append(srvData, mc...)
-			}
-			i += 1
-			if srvCnt == i {
-				break stopReading
-			}
-		case <-timeAfter:
-			break stopReading
-		}
+	var srvData []metricRecord
+	for mRecords := range mRecordsC {
+		srvData = append(srvData, mRecords...)
 	}
+
 	return srvData
 }
 
 // get data from sap system
 func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord {
+
+	// !!!!!!!!!!!!!!!
+	// t := rand.Intn(5)
+	// time.Sleep(time.Duration(t) * time.Second)
 
 	// check if all configfile param keys are uppercase otherwise the function call returns an error
 	for k, v := range config.metrics[mPos].Params {

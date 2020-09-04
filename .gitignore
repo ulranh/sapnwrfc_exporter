@@ -1,5 +1,10 @@
 *.log
+*.old
+*.save
 sapnwrfc_exporter
+
+# configfile tests in root folder
+/sapnwrfc_exporter.*
 
 # Binaries for programs and plugins
 *.exe
