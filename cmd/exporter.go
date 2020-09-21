@@ -164,10 +164,12 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
 			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
-				srv := config.getSrvInfo(mPos, sPos)
-				if srv != nil {
-					// collect only, if server(s) can be reached
-					mRecordsC <- config.collectServersMetric(mPos, sPos, srv)
+				servers := config.getSrvInfo(mPos, sPos)
+				if servers != nil {
+					for _, srv := range servers {
+						defer srv.conn.Close()
+					}
+					mRecordsC <- config.collectServersMetric(mPos, sPos, servers)
 				}
 			} else {
 				mRecordsC <- nil
@@ -248,7 +250,7 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 	}
 
 	// close connection
-	srv.conn.Close()
+	// srv.conn.Close()
 
 	// return table- or field metric data
 	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], srv.name)
