@@ -12,13 +12,14 @@ import (
 func connect(system systemInfo, password string) (*gorfc.Connection, error) {
 	c, err := gorfc.ConnectionFromParams(
 		gorfc.ConnectionParameters{
-			"Dest":   system.Name,
-			"User":   system.User,
-			"Passwd": password,
-			"Client": system.Client,
-			"Lang":   system.Lang,
-			"Ashost": system.Server,
-			"Sysnr":  system.Sysnr,
+			"Dest":      system.Name,
+			"User":      system.User,
+			"Passwd":    password,
+			"Client":    system.Client,
+			"Lang":      system.Lang,
+			"Ashost":    system.Server,
+			"Sysnr":     system.Sysnr,
+			"Saprouter": system.Saprouter,
 			// Ashost: config.Systems[s].Server,
 			// Sysnr:  config.Systems[s].Sysnr,
 			// Saprouter: "/H/203.13.155.17/S/3299/W/xjkb3d/H/172.19.137.194/H/",

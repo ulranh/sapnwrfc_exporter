@@ -21,14 +21,15 @@ type serverInfo struct {
 
 // system information
 type systemInfo struct {
-	Name   string
-	Usage  string
-	Tags   []string
-	User   string
-	Lang   string
-	Client string
-	Server string
-	Sysnr  string
+	Name      string
+	Usage     string
+	Tags      []string
+	User      string
+	Lang      string
+	Client    string
+	Server    string
+	Sysnr     string
+	Saprouter string
 	// servers  []serverInfo
 	// password *string
 }

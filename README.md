@@ -44,6 +44,7 @@ The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- sl
   Client = "100"
   Server = "host1.example.com"
   Sysnr = "01"
+  Saprouter = "/H/saprouter/W/pass/H/target"
 
 [[Systems]]
   Name = "t02"
@@ -95,6 +96,7 @@ Below is a description of the system and metric struct fields:
 | Client     | string       | SAP system client | |
 | Server     | string       | SAP system server | |
 | Sysnr      | string       | SAP system number | |
+| Saprouter  | string       | SAP router string | |
 
 #### TableMetric information
 
