@@ -21,17 +21,20 @@ type serverInfo struct {
 
 // system information
 type systemInfo struct {
-	Name      string
-	Usage     string
-	Tags      []string
-	User      string
-	Lang      string
-	Client    string
-	Server    string
-	Sysnr     string
+	Name   string
+	Usage  string
+	Tags   []string
+	User   string
+	Lang   string
+	Client string
+	Server string
+	Sysnr  string
+
+	Mshost string
+	Msserv string
+	Group  string
+
 	Saprouter string
-	// servers  []serverInfo
-	// password *string
 }
 
 // standard metric info
@@ -268,7 +271,9 @@ func (config *Config) parseConfigInfo(cmd string) error {
 		return errConfMetricMissing
 	}
 	for _, system := range config.Systems {
-		if 0 == len(system.Name) || 0 == len(system.Usage) || 0 == len(system.User) || 0 == len(system.Lang) || 0 == len(system.Client) || 0 == len(system.Server) || 0 == len(system.Sysnr) {
+		// if 0 == len(system.Name) || 0 == len(system.Usage) || 0 == len(system.User) || 0 == len(system.Lang) || 0 == len(system.Client) || 0 == len(system.Server) || 0 == len(system.Sysnr) {
+		// !!!!!!!!!!!!! adapt
+		if 0 == len(system.Name) || 0 == len(system.Usage) || 0 == len(system.User) || 0 == len(system.Lang) || 0 == len(system.Client) {
 			return errConfSystem
 		}
 	}

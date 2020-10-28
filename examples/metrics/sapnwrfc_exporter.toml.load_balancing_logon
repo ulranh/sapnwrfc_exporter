@@ -6,8 +6,9 @@
   Lang = "en"
   User = "user1"
   Client = "100"
-  Server = "host1.example.com"
-  Sysnr = "01"
+  Mshost = "host1.example.com"
+  Msserv = "3600"
+  Group = "server1_1"
 
 [[TableMetrics]]
   Name = "sap_users"

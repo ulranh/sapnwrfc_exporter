@@ -35,6 +35,7 @@ The next necessary piece is a [toml](https://github.com/toml-lang/toml) configur
 The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- slice:
 
 ```
+// user/password logon
 [[Systems]]
   Name = "t01"
   Usage = "test"
@@ -44,8 +45,8 @@ The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- sl
   Client = "100"
   Server = "host1.example.com"
   Sysnr = "01"
-  Saprouter = "/H/saprouter/W/pass/H/target"
 
+// load balanced logon
 [[Systems]]
   Name = "t02"
   Usage = "test"
@@ -53,8 +54,22 @@ The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- sl
   User = "sapuser2"
   Lang = "en"
   Client = "100"
-  Server = "host2.example.com"
-  Sysnr = "01"
+  Mshost = "server2.example.com"
+  Msserv = "3600"
+  Group = "server2_1"
+
+// load balanced logon and saprouter
+[[Systems]]
+  Name = "t03"
+  Usage = "test"
+  Tags = []
+  User = "sapuser3"
+  Lang = "en"
+  Client = "100"
+  Mshost = "server3.example.com"
+  Msserv = "3600"
+  Group = "server3_1"
+  Saprouter = "/H/saprouter/W/pass/H/target"
 
 [[TableMetrics]]
   Name = "sap_processes"
@@ -96,6 +111,9 @@ Below is a description of the system and metric struct fields:
 | Client     | string       | SAP system client | |
 | Server     | string       | SAP system server | |
 | Sysnr      | string       | SAP system number | |
+| Mshost      | string       | Message Server | |
+| Msserv      | string       | is needed only, if the service of the message server is not defined as sapms<Sysnr> in /etc/services |3600 |
+| Group      | string       | Logon group (transaction SMLG) | |
 | Saprouter  | string       | SAP router string | |
 
 #### TableMetric information
