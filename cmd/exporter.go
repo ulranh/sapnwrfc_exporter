@@ -304,7 +304,9 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 
 	var fieldLabelValues []string
 	for _, label := range fMetric.FieldLabels {
-		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
+		if rawData[up(label)] != nil {
+			fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
+		}
 	}
 
 	var md []metricRecord
