@@ -103,6 +103,8 @@ func (config *Config) web(flags map[string]*string) error {
 	// start http server
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/", rootHandler)
+
 	server := &http.Server{
 		Addr:         ":" + *flags["port"],
 		Handler:      mux,
@@ -115,6 +117,10 @@ func (config *Config) web(flags map[string]*string) error {
 	}
 
 	return nil
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "prometheus sapnwrfc_exporter: please call <host>:<port>/metrics")
 }
 
 // start collecting all metrics and fetch the results
