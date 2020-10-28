@@ -353,6 +353,10 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 		return nil
 	}
 
+	// Issue 5 why is r["LIST"] == nil ?????
+	if r["LIST"] == nil {
+		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+	}
 	srvCnt := len(r["LIST"].([]interface{}))
 
 	// if only one server is needed for the metric
