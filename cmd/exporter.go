@@ -310,9 +310,17 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 
 	var fieldLabelValues []string
 	for _, label := range fMetric.FieldLabels {
-		if rawData[up(label)] != nil {
-			fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
+		if rawData[up(label)] == nil {
+			log.WithFields(log.Fields{
+				"system":     system.Name,
+				"server":     srvName,
+				"fieldLabel": label,
+			}).Error("metricData: fieldLabel is no valid export parameter of used function module")
+			return nil
 		}
+		// if rawData[up(label)] != nil {
+		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
+		// }
 	}
 
 	var md []metricRecord
@@ -323,7 +331,7 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 		log.WithFields(log.Fields{
 			"system": system.Name,
 			"server": srvName,
-		}).Error("getRfcData: len(labels) != len(labelValues)")
+		}).Error("metricData: len(labels) != len(labelValues)")
 		return nil
 
 	}
