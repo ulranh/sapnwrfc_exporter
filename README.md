@@ -160,6 +160,7 @@ The default port is 9663 which can be changed with the -port flag.
 ```
 $ ./sapnwrfc_exporter web -config ./sapnwrfc_exporter.toml
 ```
+Then you should be able to find the desired metrics after calling ``localhost:9663/metrics`` in the browser.
 
 #### Docker
 The Docker image can be built with the existing Dockerfile. As a prerequisite the SAP NW RFC library has to be unzipped in the working directory. Then it can be started as follows:
