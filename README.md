@@ -83,7 +83,7 @@ The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- sl
     SRVNAME = ""
   [TableMetrics.RowCount]
     WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
-    WP_TYP = ["dia", "bgd", "upd", "upd2", "spo"] # with logon language "de": ["dia", "btc", "upd", "upd2", "spo"] 
+    WP_TYP = ["dia", "bgd", "upd", "up2", "spo"] # with logon language "de": ["dia", "btc", "upd", "up2", "spo"] 
   [TableMetrics.RowFilter]
     WP_STATUS = ["on hold", "running"] # with logon language "de": ["hält", "läuft"]
 

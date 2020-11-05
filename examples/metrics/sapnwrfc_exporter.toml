@@ -52,7 +52,7 @@
   [TableMetrics.Params]
     SRVNAME = ""
   [TableMetrics.RowCount]
-    WP_TYP = ["dia", "btc", "upd", "upd2"]
+    WP_TYP = ["dia", "bgd", "upd", "up2"]
     WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
   [TableMetrics.RowFilter]
     WP_STATUS = ["on hold", "running"]
