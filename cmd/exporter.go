@@ -108,8 +108,8 @@ func (config *Config) web(flags map[string]*string) error {
 	server := &http.Server{
 		Addr:         ":" + *flags["port"],
 		Handler:      mux,
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
+		WriteTimeout: time.Duration(config.timeout+2) * time.Second,
+		ReadTimeout:  time.Duration(config.timeout+2) * time.Second,
 	}
 	err = server.ListenAndServe()
 	if err != nil {
