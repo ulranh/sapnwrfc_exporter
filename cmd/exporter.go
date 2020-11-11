@@ -223,7 +223,9 @@ func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo)
 
 	var srvData []metricRecord
 	for mRecords := range mRecordsC {
-		srvData = append(srvData, mRecords...)
+		if mRecords != nil {
+			srvData = append(srvData, mRecords...)
+		}
 	}
 
 	return srvData
@@ -255,15 +257,22 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 		return nil
 	}
 
-	// close connection
-	// srv.conn.Close()
-
 	// return table- or field metric data
 	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], srv.name)
 }
 
 // retrieve table data
 func (tMetric tableInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
+
+	if rawData[up(tMetric.Table)] == nil {
+		log.WithFields(log.Fields{
+			"system": system.Name,
+			"server": srvName,
+			"table":  tMetric.Table,
+		}).Error("metricData: no results for table")
+		return nil
+	}
+
 	var md []metricRecord
 	count := make(map[string]float64)
 
