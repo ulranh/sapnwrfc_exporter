@@ -12,8 +12,8 @@ With the nwrfcsdk zip file unpacked in /usr/sap, the following environment varia
 LD_LIBRARY_PATH="/usr/sap/nwrfcsdk/lib"
 CGO_LDFLAGS="-L /usr/sap/nwrfcsdk/lib"
 CGO_CFLAGS="-I /usr/sap/nwrfcsdk/include"
-CGO_LDFLAGS_ALLOW="^.*"
-CGO_CFLAGS_ALLOW="^.*"
+CGO_LDFLAGS_ALLOW=^.*
+CGO_CFLAGS_ALLOW=^.*
 ```
 
 ## Installation
