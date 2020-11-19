@@ -60,6 +60,11 @@ type fieldInfo struct {
 	FieldLabels []string
 }
 
+type structureInfo struct {
+	ExportStructure string
+	StructureFields []string
+}
+
 // interface for different handling of table- and field metrics
 type dataReceiver interface {
 	metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord
@@ -75,6 +80,11 @@ type fieldMetric struct {
 	fieldInfo
 }
 
+type structureMetric struct {
+	metricInfo
+	structureInfo
+}
+
 type entireMetric struct {
 	metricInfo
 	dataReceiver
@@ -82,13 +92,14 @@ type entireMetric struct {
 
 // config information for the whole process
 type Config struct {
-	Secret       []byte
-	Systems      []systemInfo   // system info from toml file
-	TableMetrics []tableMetric  // table metric info from toml file
-	FieldMetrics []fieldMetric  // field metric info from toml file
-	metrics      []entireMetric // table- and field-info condensed
-	passwords    map[string]string
-	timeout      uint64
+	Secret           []byte
+	Systems          []systemInfo      // system info from toml file
+	TableMetrics     []tableMetric     // table metric info from toml file
+	FieldMetrics     []fieldMetric     // field metric info from toml file
+	StructureMetrics []structureMetric // structure metric info from toml file
+	metrics          []entireMetric    // table- and field-info condensed
+	passwords        map[string]string
+	timeout          uint64
 }
 
 // help text for command usage
@@ -176,6 +187,9 @@ func Root() {
 	}
 	for _, m := range config.FieldMetrics {
 		config.metrics = append(config.metrics, entireMetric{m.metricInfo, m.fieldInfo})
+	}
+	for _, m := range config.StructureMetrics {
+		config.metrics = append(config.metrics, entireMetric{m.metricInfo, m.structureInfo})
 	}
 
 	// parse config file

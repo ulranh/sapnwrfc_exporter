@@ -315,6 +315,7 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system syste
 }
 
 // retrieve field data
+// return string fields as label
 func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 
 	var fieldLabelValues []string
@@ -327,9 +328,7 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 			}).Error("metricData: fieldLabel is no valid export parameter of used function module")
 			return nil
 		}
-		// if rawData[up(label)] != nil {
 		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
-		// }
 	}
 
 	var md []metricRecord
@@ -351,6 +350,59 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 		value:       1,
 	}
 	md = append(md, data)
+	return md
+}
+
+// retrieve structure data (export structure field)
+// only numbers are allowed
+func (sMetric structureInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
+
+	if _, ok := rawData[up(sMetric.ExportStructure)]; !ok {
+		log.WithFields(log.Fields{
+			"system":          system.Name,
+			"server":          srvName,
+			"exportStructure": sMetric.ExportStructure,
+		}).Error("metricData: exportStructure is no valid export strucure of used function module")
+		return nil
+	}
+
+	// structData := rawData[up(sMetric.ExportStructure)].(map[string]interface{})
+
+	var md []metricRecord
+	for _, field := range sMetric.StructureFields {
+		val := rawData[up(sMetric.ExportStructure)].(map[string]interface{})[up(field)]
+		// val := rawData[up(field)]
+		if val == nil {
+			log.WithFields(log.Fields{
+				"system":         system.Name,
+				"server":         srvName,
+				"structureField": field,
+			}).Error("metricData: structureField is no valid export strucure field of used function module")
+			continue
+		}
+
+		f64Val, err := i2Float64(val)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"system":         system.Name,
+				"server":         srvName,
+				"structureField": field,
+			}).Error("metricData: structureField is not a correct metric value")
+
+			continue
+		}
+
+		labels := append([]string{"system", "usage", "server", "field"})
+		labelValues := append([]string{low(system.Name), low(system.Usage), low(srvName), low(field)})
+
+		data := metricRecord{
+			labels:      labels,
+			labelValues: labelValues,
+			value:       f64Val,
+		}
+		md = append(md, data)
+	}
+
 	return md
 }
 
@@ -466,4 +518,38 @@ func (config *Config) addPasswordData() ([]systemInfo, error) {
 
 	}
 	return systemsOk, nil
+}
+
+func i2Float64(iVal interface{}) (float64, error) {
+	switch val := iVal.(type) {
+	case string:
+		if f64Val, err := strconv.ParseFloat(val, 64); err == nil {
+			return f64Val, nil
+		}
+		return 42.0, errors.New("i2Float64 - string is no number: " + val)
+	case int64:
+		return float64(val), nil
+	case int32:
+		return float64(val), nil
+	case int16:
+		return float64(val), nil
+	case int8:
+		return float64(val), nil
+	case int:
+		return float64(val), nil
+	case uint64:
+		return float64(val), nil
+	case uint32:
+		return float64(val), nil
+	case uint8:
+		return float64(val), nil
+	case uint:
+		return float64(val), nil
+	case float32:
+		return float64(val), nil
+	case float64:
+		return float64(val), nil
+	default:
+	}
+	return 42.0, errors.New("i2Float64 - unknown type: ")
 }
