@@ -318,38 +318,91 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system syste
 // return string fields as label
 func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
 
-	var fieldLabelValues []string
-	for _, label := range fMetric.FieldLabels {
-		if rawData[up(label)] == nil {
-			log.WithFields(log.Fields{
-				"system":     system.Name,
-				"server":     srvName,
-				"fieldLabel": label,
-			}).Error("metricData: fieldLabel is no valid export parameter of used function module")
-			return nil
-		}
-		fieldLabelValues = append(fieldLabelValues, low(rawData[up(label)].(string)))
+	var md []metricRecord
+
+	if len(fMetric.FieldLabels) != 0 && len(fMetric.FieldValues) != 0 {
+		log.Error("FieldLabels and FieldValues in one metric are not allowd")
+		return nil
 	}
 
-	var md []metricRecord
-	labels := append([]string{"system", "usage", "server"}, fMetric.FieldLabels...)
-	labelValues := append([]string{low(system.Name), low(system.Usage), low(srvName)}, fieldLabelValues...)
+	labels := []string{"system", "usage", "server"}
+	labelValues := []string{low(system.Name), low(system.Usage), low(srvName)}
+
+	if len(fMetric.FieldLabels) > 0 {
+		md = fMetric.fieldLabels(rawData, labels, labelValues)
+	} else {
+		md = fMetric.fieldValues(rawData, labels, labelValues)
+	}
+	return md
+
+}
+
+// check, if toml field value, filed label is valid sap field
+func fieldOK(rawData map[string]interface{}, field string) bool {
+	if rawData[up(field)] == nil {
+		log.WithFields(log.Fields{
+			"field": field,
+		}).Error("metricData: field is no valid export,structure parameter of used function module")
+		return false
+	}
+	return true
+}
+
+// field label metrics
+func (fMetric fieldInfo) fieldLabels(rawData map[string]interface{}, labels, labelValues []string) []metricRecord {
+
+	labels = append(labels, fMetric.FieldLabels...)
+	for _, label := range fMetric.FieldLabels {
+		if !fieldOK(rawData, label) {
+			return nil
+		}
+		labelValues = append(labelValues, low(rawData[up(label)].(string)))
+	}
 
 	if len(labels) != len(labelValues) {
 		log.WithFields(log.Fields{
-			"system": system.Name,
-			"server": srvName,
+			"labels":      labels,
+			"labelValues": labelValues,
 		}).Error("metricData: len(labels) != len(labelValues)")
 		return nil
-
 	}
-
 	data := metricRecord{
 		labels:      labels,
 		labelValues: labelValues,
 		value:       1,
 	}
-	md = append(md, data)
+	return []metricRecord{data}
+}
+
+// field value metrics
+func (fMetric fieldInfo) fieldValues(rawData map[string]interface{}, labels, labelValuesBase []string) []metricRecord {
+
+	var md []metricRecord
+
+	labels = append([]string{"system", "usage", "server", "field"})
+	for _, field := range fMetric.FieldValues {
+		if !fieldOK(rawData, field) {
+			return nil
+		}
+
+		f64Val, err := i2Float64(rawData[up(field)])
+		if err != nil {
+			log.WithFields(log.Fields{
+				"field":       field,
+				"field value": f64Val,
+			}).Error("metricData: field value is not a correct metric value")
+
+			continue
+		}
+
+		labelValues := append(labelValuesBase, low(field))
+		data := metricRecord{
+			labels:      labels,
+			labelValues: labelValues,
+			value:       f64Val,
+		}
+		md = append(md, data)
+	}
 	return md
 }
 
@@ -366,19 +419,16 @@ func (sMetric structureInfo) metricData(rawData map[string]interface{}, system s
 		return nil
 	}
 
-	// structData := rawData[up(sMetric.ExportStructure)].(map[string]interface{})
-
 	var md []metricRecord
 	for _, field := range sMetric.StructureFields {
 		val := rawData[up(sMetric.ExportStructure)].(map[string]interface{})[up(field)]
-		// val := rawData[up(field)]
 		if val == nil {
 			log.WithFields(log.Fields{
 				"system":         system.Name,
 				"server":         srvName,
 				"structureField": field,
 			}).Error("metricData: structureField is no valid export strucure field of used function module")
-			continue
+			return nil
 		}
 
 		f64Val, err := i2Float64(val)
@@ -526,7 +576,7 @@ func i2Float64(iVal interface{}) (float64, error) {
 		if f64Val, err := strconv.ParseFloat(val, 64); err == nil {
 			return f64Val, nil
 		}
-		return 42.0, errors.New("i2Float64 - string is no number: " + val)
+		return 42.0, errors.New("i2Float64 - string is not a number: " + val)
 	case int64:
 		return float64(val), nil
 	case int32:

@@ -58,6 +58,7 @@ type tableInfo struct {
 // specific field metric info
 type fieldInfo struct {
 	FieldLabels []string
+	FieldValues []string
 }
 
 type structureInfo struct {
