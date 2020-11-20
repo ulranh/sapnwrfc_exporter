@@ -157,16 +157,11 @@ Below is a description of the system and metric struct fields:
 
 Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.Params same as above.
 
+Only one of both is allowed in one metric - FieldLabels or FieldValues:
+
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
 | FieldLabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
-
-
-or (only one of both is allowed)
-
-
-| Field        | Type         | Description | Example |
-| ------------ | ------------ |------------ | ------- |
 | FieldValues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
 
 #### StructureMetrics information
@@ -175,7 +170,7 @@ Name, Help, MetricType, TagFilter, AllServers, FunctionModule and StructureMetri
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| ExportStructure  | string | Function module export structure | Export Structure INFO of function module SAPTUNE_BUFFERED_PROGRAMS_INFO |
+| ExportStructure  | string | Function module export structure | "INFO" - export structure of function module SAPTUNE_BUFFERED_PROGRAMS_INFO |
 | StructureFields  | string array | Function module export structure field names with values that should be recorded as values | ["prg_swap","prg_gen"] of function module SAPTUNE_BUFFERED_PROGRAMS_INFO |
 
 #### Database passwords
