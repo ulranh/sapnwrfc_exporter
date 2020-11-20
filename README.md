@@ -32,7 +32,7 @@ A SAP user is necessary for every SAP system with read access for all affected r
 #### Configfile
 The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
 
-The file contains a Systems- and/or a TableMetrics- and/or a StructureMetrics- and/or FieldMetrics- slice:
+The file contains a Systems- and/or a TableMetrics- and/or a StructureMetrics- and/or a FieldMetrics- slice:
 
 ```
 # user/password logon
@@ -161,9 +161,12 @@ Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.P
 | ------------ | ------------ |------------ | ------- |
 | FieldLabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
 
+
 or (only one of both is allowed)
 
+
 | Field        | Type         | Description | Example |
+| ------------ | ------------ |------------ | ------- |
 | FieldValues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
 
 #### StructureMetrics information
