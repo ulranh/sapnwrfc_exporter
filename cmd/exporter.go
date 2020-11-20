@@ -406,7 +406,7 @@ func (fMetric fieldInfo) fieldValues(rawData map[string]interface{}, labels, lab
 
 	var md []metricRecord
 
-	labels = append([]string{"system", "usage", "server", "field"})
+	labels = append(labels, "field")
 	for _, field := range fMetric.FieldValues {
 		if !fieldOK(rawData, field) {
 			return nil
