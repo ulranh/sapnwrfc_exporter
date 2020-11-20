@@ -76,3 +76,24 @@
  AllServers = false
  [FieldMetrics.Params]
    IV_COMPONENT = "ST-A/PI"
+
+[[FieldMetrics]]
+  Name = "sap_tune_storage_infos"
+  Help = "SAP tune storage infos"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "SAPTUNE_GET_STORAGE_INFOS"
+  FieldValues = ["page_bufsz"]
+  [FieldMetrics.Params]
+
+[[StructureMetrics]]
+  Name = "sap_tune_programs_info"
+  Help = "SAP tune buffered programs info"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "SAPTUNE_BUFFERED_PROGRAMS_INFO"
+  ExportStructure = "INFO"
+  StructureFields = ["coll_ratio","prg_swap", "prg_gen"]
+  [StructureMetrics.Params]
