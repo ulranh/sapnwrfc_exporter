@@ -126,43 +126,56 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	var wg sync.WaitGroup
-	mDataC := make(chan metricData, len(config.metrics))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
+	defer cancel()
+
+	// var wg sync.WaitGroup
+	mCnt := len(config.metrics)
+	mDataC := make(chan metricData, mCnt)
 
 	for mPos := range config.metrics {
 
-		wg.Add(1)
+		// wg.Add(1)
 		go func(mPos int) {
-			defer wg.Done()
+			// defer wg.Done()
 			mDataC <- metricData{
 				name:       low(config.metrics[mPos].Name),
 				help:       config.metrics[mPos].Help,
 				metricType: low(config.metrics[mPos].MetricType),
-				stats:      config.collectSystemsMetric(mPos),
+				stats:      config.collectSystemsMetric(ctx, mPos),
 			}
 		}(mPos)
 	}
 
-	go func() {
-		wg.Wait()
-		close(mDataC)
-	}()
+	// go func() {
+	// 	wg.Wait()
+	// 	close(mDataC)
+	// }()
 
 	var mData []metricData
-	for metric := range mDataC {
-		mData = append(mData, metric)
+	for i := 0; i < mCnt; i++ {
+		select {
+		case mc := <-mDataC:
+
+			// ????????????? check
+			// if mc != nil {
+			mData = append(mData, mc)
+			// }
+		case <-ctx.Done():
+			return mData
+		}
 	}
+	// for metric := range mDataC {
+	// 	mData = append(mData, metric)
+	// }
 
 	return mData
 }
 
 // start collecting metric information for all tenants
-func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
+func (config *Config) collectSystemsMetric(ctx context.Context, mPos int) []metricRecord {
 	sysCnt := len(config.Systems)
 	mRecordsC := make(chan []metricRecord, sysCnt)
-
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
-	defer cancel()
 
 	for sPos := range config.Systems {
 		go func(sPos int) {
@@ -175,7 +188,7 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 					for _, srv := range servers {
 						defer srv.conn.Close()
 					}
-					mRecordsC <- config.collectServersMetric(mPos, sPos, servers)
+					mRecordsC <- config.collectServersMetric(ctx, mPos, sPos, servers)
 				}
 			} else {
 				mRecordsC <- nil
@@ -202,31 +215,45 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 }
 
 // get metric data for the system application servers
-func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo) []metricRecord {
+func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
 
-	var wg sync.WaitGroup
-	mRecordsC := make(chan []metricRecord, len(servers))
+	// var wg sync.WaitGroup
+	srvCnt := len(servers)
+	mRecordsC := make(chan []metricRecord, srvCnt)
 
 	for _, srv := range servers {
 
-		wg.Add(1)
+		// wg.Add(1)
 		go func(srv serverInfo) {
-			defer wg.Done()
+			// defer wg.Done()
 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
 		}(srv)
 	}
 
-	go func() {
-		wg.Wait()
-		close(mRecordsC)
-	}()
+	// go func() {
+	// 	wg.Wait()
+	// 	close(mRecordsC)
+	// }()
 
 	var srvData []metricRecord
-	for mRecords := range mRecordsC {
-		if mRecords != nil {
-			srvData = append(srvData, mRecords...)
+	for i := 0; i < srvCnt; i++ {
+		select {
+		case mc := <-mRecordsC:
+
+			// ????????????? check
+			// if mc != nil {
+			srvData = append(srvData, mc...)
+			// mData = append(mData, mc)
+			// }
+		case <-ctx.Done():
+			return srvData
 		}
 	}
+	// for mRecords := range mRecordsC {
+	// 	if mRecords != nil {
+	// 		srvData = append(srvData, mRecords...)
+	// 	}
+	// }
 
 	return srvData
 }
