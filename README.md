@@ -32,7 +32,7 @@ A SAP user is necessary for every SAP system with read access for all affected r
 #### Configfile
 The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
 
-The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- slice:
+The file contains a Systems- and/or a TableMetrics- and/or a StructureMetrics- and/or FieldMetrics- slice:
 
 ```
 # user/password logon
@@ -95,6 +95,28 @@ The file contains a Systems- followed by a TableMetrics- and/or FieldMetrics- sl
   AllServers = true
   FunctionModule = "TH_SAPREL2"
   FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
+  [FieldMetrics.Params]
+
+[[FieldMetrics]]
+  Name = "sap_tune_storage_infos"
+  Help = "SAP tune storage infos"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "SAPTUNE_GET_STORAGE_INFOS"
+  FieldValues = ["page_bufsz"]
+  [FieldMetrics.Params]
+
+[[StructureMetrics]]
+  Name = "sap_tune_programs_info"
+  Help = "SAP tune buffered programs info"
+  MetricType = "gauge"
+  TagFilter = []
+  AllServers = true
+  FunctionModule = "SAPTUNE_BUFFERED_PROGRAMS_INFO"
+  ExportStructure = "INFO"
+  StructureFields = ["coll_ratio","prg_swap", "prg_gen"]
+  [StructureMetrics.Params]
 ```
 
 Below is a description of the system and metric struct fields:
@@ -137,7 +159,21 @@ Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.P
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| FieldLabels  | string array | Function module export field names with values that should be recorded | ["kern_rel","kern_patchlevel"] |
+| FieldLabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
+
+or (only one of both is allowed)
+
+| Field        | Type         | Description | Example |
+| FieldValues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
+
+#### StructureMetrics information
+
+Name, Help, MetricType, TagFilter, AllServers, FunctionModule and StructureMetrics.Params same as above.
+
+| Field        | Type         | Description | Example |
+| ------------ | ------------ |------------ | ------- |
+| ExportStructure  | string | Function module export structure | Export Structure INFO of function module SAPTUNE_BUFFERED_PROGRAMS_INFO |
+| StructureFields  | string array | Function module export structure field names with values that should be recorded as values | ["prg_swap","prg_gen"] of function module SAPTUNE_BUFFERED_PROGRAMS_INFO |
 
 #### Database passwords
 
