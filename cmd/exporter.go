@@ -126,54 +126,59 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
-	defer cancel()
+	// ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
+	// defer cancel()
 
-	// var wg sync.WaitGroup
+	var wg sync.WaitGroup
 	mCnt := len(config.metrics)
 	mDataC := make(chan metricData, mCnt)
 
 	for mPos := range config.metrics {
 
-		// wg.Add(1)
+		wg.Add(1)
 		go func(mPos int) {
-			// defer wg.Done()
+			defer wg.Done()
 			mDataC <- metricData{
 				name:       low(config.metrics[mPos].Name),
 				help:       config.metrics[mPos].Help,
 				metricType: low(config.metrics[mPos].MetricType),
-				stats:      config.collectSystemsMetric(ctx, mPos),
+				stats:      config.collectSystemsMetric(mPos),
 			}
 		}(mPos)
 	}
 
-	// go func() {
-	// 	wg.Wait()
-	// 	close(mDataC)
-	// }()
+	go func() {
+		wg.Wait()
+		close(mDataC)
+	}()
 
 	var mData []metricData
-	for i := 0; i < mCnt; i++ {
-		select {
-		case mc := <-mDataC:
+	// for i := 0; i < mCnt; i++ {
+	// 	select {
+	// 	case mc := <-mDataC:
 
-			// ????????????? check
-			// if mc != nil {
-			mData = append(mData, mc)
-			// }
-		case <-ctx.Done():
-			return mData
-		}
-	}
-	// for metric := range mDataC {
-	// 	mData = append(mData, metric)
+	// 		// ????????????? check
+	// 		// if mc != nil {
+	// 		mData = append(mData, mc)
+	// 		// }
+	// 	case <-ctx.Done():
+	// 		return mData
+	// 	}
 	// }
+	for metric := range mDataC {
+		mData = append(mData, metric)
+	}
 
 	return mData
 }
 
 // start collecting metric information for all tenants
-func (config *Config) collectSystemsMetric(ctx context.Context, mPos int) []metricRecord {
+// func (config *Config) collectSystemsMetric(ctx context.Context, mPos int) []metricRecord {
+func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
+	defer cancel()
+
 	sysCnt := len(config.Systems)
 	mRecordsC := make(chan []metricRecord, sysCnt)
 
