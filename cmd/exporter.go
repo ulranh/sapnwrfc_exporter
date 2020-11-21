@@ -126,9 +126,6 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 // start collecting all metrics and fetch the results
 func (config *Config) collectMetrics() []metricData {
 
-	// ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
-	// defer cancel()
-
 	var wg sync.WaitGroup
 	mCnt := len(config.metrics)
 	mDataC := make(chan metricData, mCnt)
@@ -153,18 +150,6 @@ func (config *Config) collectMetrics() []metricData {
 	}()
 
 	var mData []metricData
-	// for i := 0; i < mCnt; i++ {
-	// 	select {
-	// 	case mc := <-mDataC:
-
-	// 		// ????????????? check
-	// 		// if mc != nil {
-	// 		mData = append(mData, mc)
-	// 		// }
-	// 	case <-ctx.Done():
-	// 		return mData
-	// 	}
-	// }
 	for metric := range mDataC {
 		mData = append(mData, metric)
 	}
@@ -173,7 +158,6 @@ func (config *Config) collectMetrics() []metricData {
 }
 
 // start collecting metric information for all tenants
-// func (config *Config) collectSystemsMetric(ctx context.Context, mPos int) []metricRecord {
 func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
@@ -222,23 +206,15 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 // get metric data for the system application servers
 func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
 
-	// var wg sync.WaitGroup
 	srvCnt := len(servers)
 	mRecordsC := make(chan []metricRecord, srvCnt)
 
 	for _, srv := range servers {
 
-		// wg.Add(1)
 		go func(srv serverInfo) {
-			// defer wg.Done()
 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
 		}(srv)
 	}
-
-	// go func() {
-	// 	wg.Wait()
-	// 	close(mRecordsC)
-	// }()
 
 	var srvData []metricRecord
 	for i := 0; i < srvCnt; i++ {
@@ -254,11 +230,6 @@ func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, 
 			return srvData
 		}
 	}
-	// for mRecords := range mRecordsC {
-	// 	if mRecords != nil {
-	// 		srvData = append(srvData, mRecords...)
-	// 	}
-	// }
 
 	return srvData
 }
