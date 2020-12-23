@@ -1,62 +1,54 @@
-package cmd
+package cmd_test
 
-import (
-	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"testing"
+import "github.com/ulranh/sapnwrfc_exporter/cmd"
 
-	"github.com/ulranh/sapnwrfc_exporter/internal"
-)
+func getTestConfig(mCnt, sCnt int) *cmd.Config {
+	// mi := []cmd.MetricInfo{
+	// 	cmd.MetricInfo{
+	// 		Name:       "m1",
+	// 		Help:       "h1",
+	// 		MetricType: "gauge",
+	// 		// SQL:          "select count(*) from <SCHEMA>.m_blocked_transactions",
+	// 		SchemaFilter: []string{"sys"},
+	// 	},
+	// 	cmd.MetricInfo{
+	// 		Name:       "m2",
+	// 		Help:       "h2",
+	// 		MetricType: "gauge",
+	// 		// SQL:          "select allocated_size,port from <SCHEMA>.m_rs_memory where category='TABLE'",
+	// 		SchemaFilter: []string{"sys"},
+	// 	},
+	// 	cmd.MetricInfo{
+	// 		Name:       "m3",
+	// 		Help:       "h3",
+	// 		MetricType: "gauge",
+	// 		// SQL:        "select top 1 (case when active_status = 'YES' then 1 else -1 end), database_name from <SCHEMA>.m_databases",
+	// 		TagFilter: []string{"erp"},
+	// 	},
+	// 	cmd.MetricInfo{
+	// 		Name:       "m4",
+	// 		Help:       "h4",
+	// 		MetricType: "gauge",
+	// 		// SQL:        "update",
+	// 	},
+	// }
 
-func Test_cmdParams(t *testing.T) {
-
-	cf, err := ioutil.TempFile(os.TempDir(), "config-")
-	if err != nil {
-		log.Fatal("Cannot create temporary file", err)
+	si := []cmd.SystemInfo{
+		cmd.SystemInfo{
+			Name: "d01",
+		},
+		cmd.SystemInfo{
+			Name: "D02",
+		},
+		cmd.SystemInfo{
+			Name: "d03",
+			Tags: []string{"bw"},
+		},
 	}
-	defer os.Remove(cf.Name())
-	fmt.Println(cf.Name())
-
-	var cmdInfo = []struct {
-		args  []string
-		cmd   string
-		flags map[string]string
-		err   error
-	}{
-		// no cmd
-		{[]string{"sapnwrfc_exporter"}, "", nil, errCmdNotGiven},
-		// wrong cmd
-		{[]string{"sapnwrfc_exporter", "a"}, "", nil, errCmdNotAvailable},
-		// wrong cmd before correct cmd
-		{[]string{"sapnwrfc_exporter", "a", "pw"}, "", nil, errCmdNotAvailable},
-		// wrong cmd after correct cmd
-		{[]string{"sapnwrfc_exporter", "pw", "a"}, "", nil, errCmdFlagMissing},
-		// configfile does not exist
-		{[]string{"sapnwrfc_exporter", "pw", "-system", "p01", "-config", "nothere.toml"}, "", nil, errCmdFileMissing},
-		// configfile does exist
-		{[]string{"sapnwrfc_exporter", "pw", "-system", "p01", "-config", cf.Name()}, "pw", map[string]string{
-			"system": "p01",
-			"config": cf.Name(),
-		}, nil},
-		{[]string{"sapnwrfc_exporter", "web", "-port", "3232", "-config", cf.Name()}, "web", map[string]string{
-			"port":   "3232",
-			"config": cf.Name(),
-		}, nil},
+	config := cmd.Config{
+		// Metrics: mi[:mCnt],
+		Systems: si[:sCnt],
+		Timeout: 3,
 	}
-
-	for _, line := range cmdInfo {
-		cmd, flags, err := getCmdInfo(line.args)
-		internal.Equals(t, cmd, line.cmd)
-		for k := range line.flags {
-			internal.Equals(t, *flags[k], line.flags[k])
-		}
-		internal.Equals(t, err, line.err)
-	}
-
-	// Close tmpfile
-	if err := cf.Close(); err != nil {
-		log.Fatal("Cannot close temporary file", err)
-	}
+	return &config
 }

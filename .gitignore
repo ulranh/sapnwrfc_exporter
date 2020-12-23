@@ -2,6 +2,7 @@
 *.old
 *.save
 sapnwrfc_exporter
+dev_rfc.log
 
 # configfile tests in root folder
 /sapnwrfc_exporter.*

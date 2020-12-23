@@ -1,3 +1,17 @@
+// Copyright © 2020 Ulrich Anhalt <ulrich.anhalt@gmail.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
@@ -9,11 +23,13 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"github.com/ulranh/sapnwrfc_exporter/internal"
 )
 
@@ -38,12 +54,76 @@ type metricRecord struct {
 	labelValues []string
 }
 
+// webCmd represents the web command
+var webCmd = &cobra.Command{
+	Use:   "web",
+	Short: "Run the exporter",
+	Long: `With the command web you can start the sapnwrfc exporter. For example:
+	sapnwrfc_exporter web
+	sapnwrfc_exporter web --config ./.sapmwrfc_exporter.toml`,
+	Run: func(cmd *cobra.Command, args []string) {
+
+		config, err := getConfig()
+		if err != nil {
+			exit("Can't handle config file: ", err)
+		}
+
+		err = config.checkConfig()
+		if err != nil {
+			exit("Problems with config file: ", err)
+		}
+
+		// initialize password map
+		config.passwords = make(map[string]string)
+
+		config.Timeout, err = cmd.Flags().GetUint("timeout")
+		if err != nil {
+			exit("Problem with timeout flag: ", err)
+		}
+		config.port, err = cmd.Flags().GetString("port")
+		if err != nil {
+			exit("Problem with port flag: ", err)
+		}
+
+		// set data func
+		// config.DataFunc = config.GetMetricData
+
+		err = config.web()
+		if err != nil {
+			exit("Can't call exporter: ", err)
+		}
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(webCmd)
+
+	webCmd.PersistentFlags().UintP("timeout", "t", 5, "scrape timeout of the hana_sql_exporter in seconds.")
+	webCmd.PersistentFlags().StringP("port", "p", "9663", "port, the hana_sql_exporter listens to.")
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// webCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// webCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+// create new collector
+func newCollector(stats func() []metricData) *collector {
+	return &collector{
+		stats: stats,
+	}
+}
+
 // Describe implements prometheus.Collector.
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(c, ch)
 }
 
-// Collect implements prometheus.Collector.
+// Collect - implements prometheus.Collector.
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	// Take a stats snapshot.  Must be concurrency safe.
 	stats := c.stats()
@@ -55,8 +135,8 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	for _, mi := range stats {
 		for _, v := range mi.stats {
 			m := prometheus.MustNewConstMetric(
-				prometheus.NewDesc(low(mi.name), mi.help, v.labels, nil),
-				valueType[low(mi.metricType)],
+				prometheus.NewDesc(mi.name, mi.help, v.labels, nil),
+				valueType[mi.metricType],
 				v.value,
 				v.labelValues...,
 			)
@@ -65,20 +145,15 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func newCollector(stats func() []metricData) *collector {
-	return &collector{
-		stats: stats,
-	}
-}
-
 // start collector and web server
-func (config *Config) web(flags map[string]*string) error {
+func (config *Config) web() error {
 
 	var err error
-	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
-	if err != nil {
-		exit(fmt.Sprint(" timeout flag has wrong type", err))
-	}
+	// config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	// if err != nil {
+	// 	exit(fmt.Sprint(" timeout flag has wrong type", err))
+	// }
+
 	// add missing system data
 	config.Systems, err = config.addPasswordData()
 	if err != nil {
@@ -87,10 +162,10 @@ func (config *Config) web(flags map[string]*string) error {
 		}).Error("Can't add missing system data.")
 		return err
 	}
-	config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
-	if err != nil {
-		exit(fmt.Sprint(" timeout flag has wrong type", err))
-	}
+	// config.timeout, err = strconv.ParseUint(*flags["timeout"], 10, 0)
+	// if err != nil {
+	// 	exit(fmt.Sprint(" timeout flag has wrong type", err))
+	// }
 
 	stats := func() []metricData {
 		data := config.collectMetrics()
@@ -106,10 +181,10 @@ func (config *Config) web(flags map[string]*string) error {
 	mux.HandleFunc("/", rootHandler)
 
 	server := &http.Server{
-		Addr:         ":" + *flags["port"],
+		Addr:         ":" + config.port,
 		Handler:      mux,
-		WriteTimeout: time.Duration(config.timeout+2) * time.Second,
-		ReadTimeout:  time.Duration(config.timeout+2) * time.Second,
+		WriteTimeout: time.Duration(config.Timeout+2) * time.Second,
+		ReadTimeout:  time.Duration(config.Timeout+2) * time.Second,
 	}
 	err = server.ListenAndServe()
 	if err != nil {
@@ -127,18 +202,18 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 func (config *Config) collectMetrics() []metricData {
 
 	var wg sync.WaitGroup
-	mCnt := len(config.metrics)
+	mCnt := len(config.IntMetrics)
 	mDataC := make(chan metricData, mCnt)
 
-	for mPos := range config.metrics {
+	for mPos := range config.IntMetrics {
 
 		wg.Add(1)
 		go func(mPos int) {
 			defer wg.Done()
 			mDataC <- metricData{
-				name:       low(config.metrics[mPos].Name),
-				help:       config.metrics[mPos].Help,
-				metricType: low(config.metrics[mPos].MetricType),
+				name:       config.IntMetrics[mPos].Name,
+				help:       config.IntMetrics[mPos].Help,
+				metricType: config.IntMetrics[mPos].MetricType,
 				stats:      config.collectSystemsMetric(mPos),
 			}
 		}(mPos)
@@ -160,7 +235,7 @@ func (config *Config) collectMetrics() []metricData {
 // start collecting metric information for all tenants
 func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.timeout)*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(config.Timeout)*time.Second))
 	defer cancel()
 
 	sysCnt := len(config.Systems)
@@ -171,7 +246,7 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
-			if subSliceInSlice(config.metrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+			if subSliceInSlice(config.IntMetrics[mPos].TagFilter, config.Systems[sPos].Tags) {
 				servers := config.getSrvInfo(mPos, sPos)
 				if servers != nil {
 					for _, srv := range servers {
@@ -242,15 +317,15 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 	// time.Sleep(time.Duration(t) * time.Second)
 
 	// check if all configfile param keys are uppercase otherwise the function call returns an error
-	for k, v := range config.metrics[mPos].Params {
+	for k, v := range config.IntMetrics[mPos].Params {
 		upKey := up(k)
 		if !(upKey == k) {
-			config.metrics[mPos].Params[upKey] = v
-			delete(config.metrics[mPos].Params, k)
+			config.IntMetrics[mPos].Params[upKey] = v
+			delete(config.IntMetrics[mPos].Params, k)
 		}
 	}
 	// call function module
-	rawData, err := srv.conn.Call(up(config.metrics[mPos].FunctionModule), config.metrics[mPos].Params)
+	rawData, err := srv.conn.Call(up(config.IntMetrics[mPos].FunctionModule), config.IntMetrics[mPos].Params)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"system": config.Systems[sPos].Name,
@@ -260,12 +335,11 @@ func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord 
 		return nil
 	}
 
-	// return table- or field metric data
-	return config.metrics[mPos].metricData(rawData, config.Systems[sPos], srv.name)
+	return config.IntMetrics[mPos].special.metricData(rawData, config.Systems[sPos], srv.name)
 }
 
 // retrieve table data
-func (tMetric tableInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
+func (tMetric TableInfo) metricData(rawData map[string]interface{}, system SystemInfo, srvName string) []metricRecord {
 
 	if rawData[up(tMetric.Table)] == nil {
 		log.WithFields(log.Fields{
@@ -307,8 +381,9 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system syste
 			namePart := low(interface2String(value))
 
 			data := metricRecord{
-				labels:      []string{"system", "usage", "server", "count"},
-				labelValues: []string{low(system.Name), low(system.Usage), low(srvName), low(field + "_" + namePart)},
+				labels: []string{"system", "usage", "server", "count"},
+				// !!!!! low noetig?
+				labelValues: []string{system.Name, system.Usage, srvName, low(field + "_" + namePart)},
 				value:       count[low(field)+"_"+namePart],
 			}
 			md = append(md, data)
@@ -319,7 +394,7 @@ func (tMetric tableInfo) metricData(rawData map[string]interface{}, system syste
 
 // retrieve field data
 // return string fields as label
-func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
+func (fMetric FieldInfo) metricData(rawData map[string]interface{}, system SystemInfo, srvName string) []metricRecord {
 
 	var md []metricRecord
 
@@ -329,30 +404,19 @@ func (fMetric fieldInfo) metricData(rawData map[string]interface{}, system syste
 	}
 
 	labels := []string{"system", "usage", "server"}
-	labelValues := []string{low(system.Name), low(system.Usage), low(srvName)}
+	labelValues := []string{system.Name, system.Usage, srvName}
 
 	if len(fMetric.FieldLabels) > 0 {
-		md = fMetric.fieldLabels(rawData, labels, labelValues)
+		md = fMetric.getFieldLabels(rawData, labels, labelValues)
 	} else {
-		md = fMetric.fieldValues(rawData, labels, labelValues)
+		md = fMetric.getFieldValues(rawData, labels, labelValues)
 	}
 	return md
 
 }
 
-// check, if toml field value, filed label is valid sap field
-func fieldOK(rawData map[string]interface{}, field string) bool {
-	if rawData[up(field)] == nil {
-		log.WithFields(log.Fields{
-			"field": field,
-		}).Error("metricData: field is no valid export,structure parameter of used function module")
-		return false
-	}
-	return true
-}
-
 // field label metrics
-func (fMetric fieldInfo) fieldLabels(rawData map[string]interface{}, labels, labelValues []string) []metricRecord {
+func (fMetric FieldInfo) getFieldLabels(rawData map[string]interface{}, labels, labelValues []string) []metricRecord {
 
 	labels = append(labels, fMetric.FieldLabels...)
 	for _, label := range fMetric.FieldLabels {
@@ -378,7 +442,7 @@ func (fMetric fieldInfo) fieldLabels(rawData map[string]interface{}, labels, lab
 }
 
 // field value metrics
-func (fMetric fieldInfo) fieldValues(rawData map[string]interface{}, labels, labelValuesBase []string) []metricRecord {
+func (fMetric FieldInfo) getFieldValues(rawData map[string]interface{}, labels, labelValuesBase []string) []metricRecord {
 
 	var md []metricRecord
 
@@ -411,7 +475,7 @@ func (fMetric fieldInfo) fieldValues(rawData map[string]interface{}, labels, lab
 
 // retrieve structure data (export structure field)
 // only numbers are allowed
-func (sMetric structureInfo) metricData(rawData map[string]interface{}, system systemInfo, srvName string) []metricRecord {
+func (sMetric StructureInfo) metricData(rawData map[string]interface{}, system SystemInfo, srvName string) []metricRecord {
 
 	if _, ok := rawData[up(sMetric.ExportStructure)]; !ok {
 		log.WithFields(log.Fields{
@@ -446,7 +510,7 @@ func (sMetric structureInfo) metricData(rawData map[string]interface{}, system s
 		}
 
 		labels := append([]string{"system", "usage", "server", "field"})
-		labelValues := append([]string{low(system.Name), low(system.Usage), low(srvName), low(field)})
+		labelValues := append([]string{system.Name, system.Usage, srvName, low(field)})
 
 		data := metricRecord{
 			labels:      labels,
@@ -490,7 +554,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	// if only one server is needed for the metric
 	// or if all servers are needed but only one server exists
 	// -> return the standard connection. it will be closed in getRfcData.
-	if !config.metrics[mPos].AllServers || 1 == srvCnt {
+	if !config.Metrics[mPos].AllServers || 1 == srvCnt {
 		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
 	}
 
@@ -540,7 +604,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 }
 
 // add passwords and system servers to config.Systems
-func (config *Config) addPasswordData() ([]systemInfo, error) {
+func (config *Config) addPasswordData() ([]SystemInfo, error) {
 	var secret internal.Secret
 
 	if err := proto.Unmarshal(config.Secret, &secret); err != nil {
@@ -548,18 +612,18 @@ func (config *Config) addPasswordData() ([]systemInfo, error) {
 		return nil, errors.Wrap(err, " system  - Unmarshal")
 	}
 
-	var systemsOk []systemInfo
+	var systemsOk []SystemInfo
 	for _, system := range config.Systems {
 
 		// decrypt password and add it to system config
-		if _, ok := secret.Name[low(system.Name)]; !ok {
+		if _, ok := secret.Name[system.Name]; !ok {
 			log.WithFields(log.Fields{
 				"system": system.Name,
 			}).Error("Can't find password for system")
 			continue
 		}
 		systemsOk = append(systemsOk, system)
-		pw, err := internal.PwDecrypt(secret.Name[low(system.Name)], secret.Name["secretkey"])
+		pw, err := PwDecrypt(secret.Name[system.Name], secret.Name["secretkey"])
 		if err != nil {
 			log.WithFields(log.Fields{
 				"system": system.Name,
@@ -605,4 +669,15 @@ func i2Float64(iVal interface{}) (float64, error) {
 	default:
 	}
 	return 42.0, errors.New("i2Float64 - unknown type: ")
+}
+
+// check, if toml field value, field label is valid sap field
+func fieldOK(rawData map[string]interface{}, field string) bool {
+	if rawData[up(field)] == nil {
+		log.WithFields(log.Fields{
+			"field": field,
+		}).Error("metricData: field is no valid export,structure parameter of used function module")
+		return false
+	}
+	return true
 }
