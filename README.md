@@ -30,9 +30,9 @@ $ go build
 A SAP user is necessary for every SAP system with read access for all affected remote function modules.
 
 #### Configfile
-The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
+The next necessary piece is a [toml](https://github.com/toml-lang/toml) configuration file where the encrypted passwords, the system- and metric-information are stored. The expected default name is .sapnwrfc_exporter.toml and the expected default location of this file is the home directory of the user. The flag -config can be used to assign other locations or names.
 
-The file contains a Systems- and/or a TableMetrics- and/or a StructureMetrics- and/or a FieldMetrics- slice:
+The file contains a Systems- and a Metrics-slice. After version v0.2 the metric format in the toml file has changed. Instead of aTableMetrics-  and/or StructureMetrics- and/or FieldMetrics- slice, now there is only one Metrics slice where each element has the same basic fields and one additional table-, structure- or field-information struct as a sub-struct:
 
 ```
 # user/password logon
@@ -71,52 +71,55 @@ The file contains a Systems- and/or a TableMetrics- and/or a StructureMetrics- a
   Group = "server3_1"
   Saprouter = "/H/saprouter/W/pass/H/target"
 
-[[TableMetrics]]
-  Name = "sap_processes"
-  Help = "Number of sm50 processes"
+[[metrics]]
+  Name = "sap_lock_entries"
+  Help = "sm12 help"
   MetricType = "gauge"
   TagFilter = []
-  FunctionModule = "TH_WPINFO"
-  Table = "WPLIST"
-  AllServers = true
-  [TableMetrics.Params]
-    SRVNAME = ""
-  [TableMetrics.RowCount]
-    WP_TABLE = ["dbvm", "dbvl", "ma61v", "mdup"]
-    WP_TYP = ["dia", "bgd", "upd", "up2", "spo"] # with logon language "de": ["dia", "btc", "upd", "up2", "spo"] 
-  [TableMetrics.RowFilter]
-    WP_STATUS = ["on hold", "running"] # with logon language "de": ["hält", "läuft"]
+  FunctionModule = "ENQUE_READ"
+  AllServers = false
+  [metrics.params]
+    GARG = ""
+    GCLIENT = ""
+    GNAME = ""
+    GUNAME = ""
+  [metrics.tabledata]
+    Table = "ENQ"
+    [metrics.tabledata.rowcount]
+      gclient = ["total", "000", "50", "60"]
 
-[[FieldMetrics]]
-  Name = "sap_kernel_info"
-  Help = "SAP kernel and db client info"
+[[metrics]]
+  Name = "sap_stapi_version"
+  Help = "SAP ST-A/Pi version info"
   MetricType = "gauge"
   TagFilter = []
-  AllServers = true
-  FunctionModule = "TH_SAPREL2"
-  FieldLabels = ["kern_rel", "kern_dblib", "kern_patchlevel"]
-  [FieldMetrics.Params]
+  FunctionModule = "ANST_OCS_GET_COMPONENT_STATE"
+  AllServers = false
+  [metrics.params]
+    IV_COMPONENT = "ST-A/PI"
+  [metrics.fielddata]
+    FieldLabels = ["ev_comp_rel", "ev_comp_spp_level"]
 
-[[FieldMetrics]]
+[[metrics]]
   Name = "sap_tune_storage_infos"
   Help = "SAP tune storage infos"
   MetricType = "gauge"
   TagFilter = []
   AllServers = true
   FunctionModule = "SAPTUNE_GET_STORAGE_INFOS"
-  FieldValues = ["page_bufsz"]
-  [FieldMetrics.Params]
+  [metrics.fielddata]
+    FieldValues = ["page_bufsz"]
 
-[[StructureMetrics]]
+[[metrics]]
   Name = "sap_tune_programs_info"
   Help = "SAP tune buffered programs info"
   MetricType = "gauge"
   TagFilter = []
   AllServers = true
   FunctionModule = "SAPTUNE_BUFFERED_PROGRAMS_INFO"
-  ExportStructure = "INFO"
-  StructureFields = ["coll_ratio","prg_swap", "prg_gen"]
-  [StructureMetrics.Params]
+  [metrics.structuredata]
+    ExportStructure = "INFO"
+    StructureFields = ["prg_swap", "prg_gen"]
 ```
 
 Below is a description of the system and metric struct fields:
@@ -138,7 +141,9 @@ Below is a description of the system and metric struct fields:
 | Group      | string       | Logon group (transaction SMLG) | |
 | Saprouter  | string       | SAP router string | |
 
-#### TableMetric information
+#### Metric information
+
+Every entry has the same basic fields:
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
@@ -146,27 +151,32 @@ Below is a description of the system and metric struct fields:
 | Help         | string       | Metric help text | "Number of sm50 processes"|
 | MetricType   | string       | Type of metric | "counter" or "gauge" |
 | TagFilter    | string array | The metric will only be executed, if all values correspond with the existing tenant tags | TagFilter ["erp"] needs at least system Tag ["erp"] otherwise the metric will not be used |
-| AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
 | FunctionModule | string       | Function module name | "TH_WPINFO" |
-| Table        | string       | Result table of function module | "WPLIST" |
-| TableMetrics.Params | map[string]interface{} | Params of the function module |  |
-| TableMetrics.RowCount | map[string]interface{} | Values of a table result field, that should be counted  |  |
-| TableMetrics.RowFilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped|  |
+| AllServers   | bool         | When true, the metric will be created for every applicationserver of the SAP system | "true","false" |
+| [Metrics.Params] | map[string]interface{} | Params of the function module |  |
 
-#### FieldMetric information
+For every entry one of the following special information for table-, field-, or structure data is possible:
 
-Name, Help, MetricType, TagFilter, AllServers, FunctionModule and FieldMetrics.Params same as above.
+##### Metric-table information
 
-Only one of both is allowed in one metric - FieldLabels or FieldValues:
+[metrics.tabledata]
+
+| table        | string       | Result table of function module | "WPLIST" |
+| metrics.tabledata.rowcount | map[string]interface{} | Values of a table result field, that should be counted  |  |
+| metrics.tabledata.rowfilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped|  |
+
+##### Metric-field information
+
+[metrics.fielddata]
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
-| FieldLabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
-| FieldValues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
+| fieldlabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
+| fieldvalues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
 
-#### StructureMetrics information
+##### Metric-structure information
 
-Name, Help, MetricType, TagFilter, AllServers, FunctionModule and StructureMetrics.Params same as above.
+[metrics.structuredata]
 
 | Field        | Type         | Description | Example |
 | ------------ | ------------ |------------ | ------- |
@@ -177,12 +187,12 @@ Name, Help, MetricType, TagFilter, AllServers, FunctionModule and StructureMetri
 
 With the following commands the passwords for the example tenants above can be written to the Secret section of the configfile:
 ```
-$ ./sapnwrfc_exporter pw -system t01 -config ./sapnwrfc_exporter.toml
-$ ./sapnwrfc_exporter pw -system t02 -config ./sapnwrfc_exporter.toml
+$ ./sapnwrfc_exporter pw --system t01 # default configfile in <home>/.sapnwrfc_exporter.toml
+$ ./sapnwrfc_exporter pw -s t02 -c ./sapnwrfc_exporter.toml
 ```
 With one password for multiple systems, the following notation is also possible:
 ```
-$ ./sapnwrfc_exporter pw -tenant t01,t02 -config ./sapnwrfc_exporter.toml
+$ ./sapnwrfc_exporter pw -s t01,t02 --config ./.sapnwrfc_exporter.toml
 ```
 
 ## Usage
