@@ -161,9 +161,11 @@ For every entry one of the following special information for table-, field-, or 
 
 [metrics.tabledata]
 
+| Field        | Type         | Description | Example |
+| ------------ | ------------ |------------ | ------- |
 | table        | string       | Result table of function module | "WPLIST" |
-| metrics.tabledata.rowcount | map[string]interface{} | Values of a table result field, that should be counted  |  |
-| metrics.tabledata.rowfilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped |  |
+| metrics.tabledata.rowcount | map[string]interface{} | Values of a table result field, that should be counted  | wp_typ = ["dia"] |
+| metrics.tabledata.rowfilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped | wp_status = ["running"] |
 
 ##### Metric field information
 
