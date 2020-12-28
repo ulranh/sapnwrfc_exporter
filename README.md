@@ -157,15 +157,15 @@ Every entry has the same basic fields:
 
 For every entry one of the following special information for table-, field-, or structure data is possible:
 
-##### Metric-table information
+##### Metric table information
 
 [metrics.tabledata]
 
 | table        | string       | Result table of function module | "WPLIST" |
 | metrics.tabledata.rowcount | map[string]interface{} | Values of a table result field, that should be counted  |  |
-| metrics.tabledata.rowfilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped|  |
+| metrics.tabledata.rowfilter | map[string]interface{} | Only some values of a table field shall be considered all other lines will be skipped |  |
 
-##### Metric-field information
+##### Metric field information
 
 [metrics.fielddata]
 
@@ -174,7 +174,7 @@ For every entry one of the following special information for table-, field-, or 
 | fieldlabels  | string array | Function module export field names with values that should be recorded as labels | ["kern_rel","kern_patchlevel"] of function module TH_SAPREL2 |
 | fieldvalues  | string array | Function module export field names with values that should be recorded as values | ["page_bufsz"] of function module SAPTUNE_GET_STORAGE_INFOS |
 
-##### Metric-structure information
+##### Metric structure information
 
 [metrics.structuredata]
 
