@@ -252,7 +252,7 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 					for _, srv := range servers {
 						defer srv.conn.Close()
 					}
-					mRecordsC <- config.collectServersMetric(ctx, mPos, sPos, servers)
+					mRecordsC <- config.collectServersMetric(mPos, sPos, servers)
 				}
 			} else {
 				mRecordsC <- nil
@@ -279,35 +279,62 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 }
 
 // get metric data for the system application servers
-func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
+func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo) []metricRecord {
 
-	srvCnt := len(servers)
-	mRecordsC := make(chan []metricRecord, srvCnt)
+	var wg sync.WaitGroup
+	mRecordsC := make(chan []metricRecord, len(servers))
 
 	for _, srv := range servers {
 
+		wg.Add(1)
 		go func(srv serverInfo) {
+			defer wg.Done()
 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
 		}(srv)
 	}
 
-	var srvData []metricRecord
-	for i := 0; i < srvCnt; i++ {
-		select {
-		case mc := <-mRecordsC:
+	go func() {
+		wg.Wait()
+		close(mRecordsC)
+	}()
 
-			// ????????????? check
-			// if mc != nil {
-			srvData = append(srvData, mc...)
-			// mData = append(mData, mc)
-			// }
-		case <-ctx.Done():
-			return srvData
-		}
+	var srvData []metricRecord
+	for metric := range mRecordsC {
+		srvData = append(srvData, metric...)
 	}
 
 	return srvData
 }
+
+// func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
+
+// 	srvCnt := len(servers)
+// 	mRecordsC := make(chan []metricRecord, srvCnt)
+
+// 	for _, srv := range servers {
+
+// 		go func(srv serverInfo) {
+// 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
+// 		}(srv)
+// 	}
+
+// 	var srvData []metricRecord
+// 	for i := 0; i < srvCnt; i++ {
+// 		select {
+// 		case mc := <-mRecordsC:
+
+// 			// ????????????? check
+// 			// if mc != nil {
+// 			srvData = append(srvData, mc...)
+// 			// mData = append(mData, mc)
+// 			// }
+// 		case <-ctx.Done():
+// 			return srvData
+// 		}
+// 	}
+
+// 	return srvData
+// }
 
 // get data from sap system
 func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord {
