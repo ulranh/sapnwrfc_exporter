@@ -310,6 +310,36 @@ func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo)
 	return srvData
 }
 
+// func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
+
+// 	srvCnt := len(servers)
+// 	mRecordsC := make(chan []metricRecord, srvCnt)
+
+// 	for _, srv := range servers {
+
+// 		go func(srv serverInfo) {
+// 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
+// 		}(srv)
+// 	}
+
+// 	var srvData []metricRecord
+// 	for i := 0; i < srvCnt; i++ {
+// 		select {
+// 		case mc := <-mRecordsC:
+
+// 			// ????????????? check
+// 			// if mc != nil {
+// 			srvData = append(srvData, mc...)
+// 			// mData = append(mData, mc)
+// 			// }
+// 		case <-ctx.Done():
+// 			return srvData
+// 		}
+// 	}
+
+// 	return srvData
+// }
+
 // get data from sap system
 func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord {
 

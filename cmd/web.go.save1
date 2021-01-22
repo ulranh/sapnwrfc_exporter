@@ -246,21 +246,17 @@ func (config *Config) collectSystemsMetric(mPos int) []metricRecord {
 
 			// all values of Metrics.TagFilter must be in Tenants.Tags, otherwise the
 			// metric is not relevant for the tenant
-			if !subSliceInSlice(config.IntMetrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+			if subSliceInSlice(config.IntMetrics[mPos].TagFilter, config.Systems[sPos].Tags) {
+				servers := config.getSrvInfo(mPos, sPos)
+				if servers != nil {
+					for _, srv := range servers {
+						defer srv.conn.Close()
+					}
+					mRecordsC <- config.collectServersMetric(mPos, sPos, servers)
+				}
+			} else {
 				mRecordsC <- nil
-				return
 			}
-
-			servers := config.getSrvInfo(mPos, sPos)
-			if servers == nil {
-				mRecordsC <- nil
-				return
-			}
-
-			for _, srv := range servers {
-				defer srv.conn.Close()
-			}
-			mRecordsC <- config.collectServersMetric(mPos, sPos, servers)
 		}(sPos)
 	}
 
@@ -309,6 +305,36 @@ func (config *Config) collectServersMetric(mPos, sPos int, servers []serverInfo)
 
 	return srvData
 }
+
+// func (config *Config) collectServersMetric(ctx context.Context, mPos, sPos int, servers []serverInfo) []metricRecord {
+
+// 	srvCnt := len(servers)
+// 	mRecordsC := make(chan []metricRecord, srvCnt)
+
+// 	for _, srv := range servers {
+
+// 		go func(srv serverInfo) {
+// 			mRecordsC <- config.getRfcData(mPos, sPos, srv)
+// 		}(srv)
+// 	}
+
+// 	var srvData []metricRecord
+// 	for i := 0; i < srvCnt; i++ {
+// 		select {
+// 		case mc := <-mRecordsC:
+
+// 			// ????????????? check
+// 			// if mc != nil {
+// 			srvData = append(srvData, mc...)
+// 			// mData = append(mData, mc)
+// 			// }
+// 		case <-ctx.Done():
+// 			return srvData
+// 		}
+// 	}
+
+// 	return srvData
+// }
 
 // get data from sap system
 func (config *Config) getRfcData(mPos, sPos int, srv serverInfo) []metricRecord {
