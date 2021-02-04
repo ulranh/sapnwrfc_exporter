@@ -4,6 +4,8 @@ The purpose of this exporter is to support monitoring SAP instances with [Promet
 
 ## Prerequisites
 
+**!!!** It looks like there are some [issues](https://github.com/ulranh/sapnwrfc_exporter/issues/9) with nwrfcsdk pl7. In my experience sapnwrfc_exporter v0.3 in combination with nwrfcsdk pl6 is a good working combination.
+
 You need the SAP NWRFC SDK 7.50 PL3 library (or later) as a prequisite for the installation of this exporter. To download this library you must have a customer or partner account on the SAP Service Marketplace. Please take a look at SAP note "2573790 - Installation, Support and Availability of the SAP NetWeaver RFC Library 7.50" and the [gorfc](https://github.com/SAP/gorfc) readme.
 
 With the nwrfcsdk zip file unpacked in /usr/sap, the following environment variables are necessary under Linux:
@@ -12,8 +14,8 @@ With the nwrfcsdk zip file unpacked in /usr/sap, the following environment varia
 LD_LIBRARY_PATH="/usr/sap/nwrfcsdk/lib"
 CGO_LDFLAGS="-L /usr/sap/nwrfcsdk/lib"
 CGO_CFLAGS="-I /usr/sap/nwrfcsdk/include"
-CGO_LDFLAGS_ALLOW=^.*
-CGO_CFLAGS_ALLOW=^.*
+CGO_LDFLAGS_ALLOW=.*
+CGO_CFLAGS_ALLOW=.*
 ```
 
 ## Installation

@@ -572,6 +572,9 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 			defer wg.Done()
 
 			appl := v.(map[string]interface{})
+			if _, ok := appl["NAME"]; !ok {
+				return
+			}
 			info := strings.Split(strings.TrimSpace(appl["NAME"].(string)), "_")
 
 			sys := config.Systems[sPos]
