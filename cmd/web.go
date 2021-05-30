@@ -548,7 +548,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 
 	// Issue 5 why is r["LIST"] == nil ?????
 	if r["LIST"] == nil {
-		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+		return []serverInfo{{config.Systems[sPos].Name, c}}
 	}
 	srvCnt := len(r["LIST"].([]interface{}))
 
@@ -556,7 +556,7 @@ func (config *Config) getSrvInfo(mPos, sPos int) []serverInfo {
 	// or if all servers are needed but only one server exists
 	// -> return the standard connection. it will be closed in getRfcData.
 	if !config.Metrics[mPos].AllServers || 1 == srvCnt {
-		return []serverInfo{serverInfo{config.Systems[sPos].Name, c}}
+		return []serverInfo{{config.Systems[sPos].Name, c}}
 	}
 
 	// if more servers exists, they get their own connection below

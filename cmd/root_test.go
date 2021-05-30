@@ -34,13 +34,13 @@ func getTestConfig(mCnt, sCnt int) *cmd.Config {
 	// }
 
 	si := []cmd.SystemInfo{
-		cmd.SystemInfo{
+		{
 			Name: "d01",
 		},
-		cmd.SystemInfo{
+		{
 			Name: "D02",
 		},
-		cmd.SystemInfo{
+		{
 			Name: "d03",
 			Tags: []string{"bw"},
 		},

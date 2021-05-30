@@ -33,7 +33,7 @@ type serverInfo struct {
 	conn *gorfc.Connection
 }
 
-// system information
+// SystemInfo - system information
 type SystemInfo struct {
 	Name   string
 	Usage  string
@@ -65,20 +65,20 @@ type tomlMetric struct {
 	StructureData  StructureInfo
 }
 
-// specific table metric info
+// TableInfo - specific table metric info
 type TableInfo struct {
 	Table     string
 	RowCount  map[string][]interface{}
 	RowFilter map[string][]interface{}
 }
 
-// specific field metric info
+// FieldInfo - specific field metric info
 type FieldInfo struct {
 	FieldLabels []string
 	FieldValues []string
 }
 
-// specific structure metric info
+// StructureInfo - specific structure metric info
 type StructureInfo struct {
 	ExportStructure string
 	StructureFields []string
@@ -101,7 +101,7 @@ type dataReceiver interface {
 	metricData(rawData map[string]interface{}, system SystemInfo, srvName string) []metricRecord
 }
 
-// config information for the whole process
+// Config - information for the whole process
 type Config struct {
 	Secret     []byte
 	Systems    []SystemInfo // system info from toml file
